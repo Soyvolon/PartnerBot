@@ -1,9 +1,10 @@
 ﻿using System.IO;
+using System.Text.Json;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-using Newtonsoft.Json;
+
 
 using PartnerBot.Core.Database.Config;
 
@@ -18,7 +19,14 @@ namespace PartnerBot.Core.Database
             {
                 using StreamReader sr = new(fs);
                 var json = sr.ReadToEnd();
-                dbConfig = JsonConvert.DeserializeObject<PartnerDatabaseConfiguration>(json);
+                var configDoc = JsonDocument.Parse(json);
+
+                configDoc.RootElement.TryGetProperty("partner_database_source", out var source);
+                
+                dbConfig = new()
+                {
+                    DataSource = source.ToString() ?? ""
+                };
             }
 
             var optionsBuilder = new DbContextOptionsBuilder<PartnerDatabaseContext>();

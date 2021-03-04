@@ -21,7 +21,7 @@ namespace PartnerBot.Core.Entities
 
         public Partner() { }
 
-        public PartnerData? BuildData(Partner match, bool extra)
+        public PartnerData BuildData(Partner match, bool extra)
         {
             var data = (PartnerData)this;
 
