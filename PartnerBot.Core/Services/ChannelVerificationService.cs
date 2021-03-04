@@ -66,7 +66,7 @@ namespace PartnerBot.Core.Services
 
                 if (SlotsBag.TryTake(out var slot))
                 {
-                    ChannelTree[slot][res.ChannelId] = res.GuildId;
+                    ChannelTree[slot][res.WebhookId] = res.GuildId;
                     SlotTree[res.GuildId] = slot;
                 }
             }
@@ -91,7 +91,7 @@ namespace PartnerBot.Core.Services
             }
 
             SlotTree[p.GuildId] = slot;
-            ChannelTree[slot][p.ChannelId] = p.GuildId;
+            ChannelTree[slot][p.WebhookId] = p.GuildId;
         }
 
         internal void RemovePartner(Partner p)
@@ -100,7 +100,7 @@ namespace PartnerBot.Core.Services
 
             if(SlotTree.TryRemove(p.GuildId, out var slot))
             {
-                _ = ChannelTree[slot].TryRemove(p.ChannelId, out _);
+                _ = ChannelTree[slot].TryRemove(p.WebhookId, out _);
                 SlotsBag.Add(slot);
             }
         }
@@ -120,20 +120,37 @@ namespace PartnerBot.Core.Services
 
             foreach(var id in ids)
             {
-                var channel = await _rest.GetChannelAsync(id.Key);
-
-                foreach(var overwrite in channel.PermissionOverwrites)
+                try
                 {
-                    if(overwrite.Denied.HasPermission(RequiredPermissions))
-                    {
-                        var p = await _database.FindAsync<Partner>(id.Value);
-                        p.Active = false;
-                        await _database.SaveChangesAsync();
+                    var hook = await _rest.GetWebhookAsync(id.Key);
+                    var channel = await _rest.GetChannelAsync(hook.ChannelId);
 
-                        RemovePartner(p);
+                    foreach (var overwrite in channel.PermissionOverwrites)
+                    {
+                        if (overwrite.Denied.HasPermission(RequiredPermissions))
+                        {
+                            await DisablePartner(id.Value);
+                        }
                     }
                 }
+                catch
+                {
+                    await DisablePartner(id.Value);
+                }
+                finally
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(0.15));
+                }
             }
+        }
+
+        private async Task DisablePartner(ulong guildId)
+        {
+            var p = await _database.FindAsync<Partner>(guildId);
+            p.Active = false;
+            await _database.SaveChangesAsync();
+
+            RemovePartner(p);
         }
     }
 }
