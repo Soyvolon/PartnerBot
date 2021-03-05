@@ -18,7 +18,7 @@ namespace PartnerBot.Core.Entities
         public string Banner { get; set; } = "";
         [NotMapped]
         private HashSet<string>? _tagSet { get; set; } = null;
-        public string TagString { get; private set; }
+        public string TagString { get; protected set; }
         public string Invite { get; set; } = "";
         public bool NSFW { get; set; } = false;
         public bool ReceiveNSFW { get; set; } = false;
@@ -29,10 +29,7 @@ namespace PartnerBot.Core.Entities
 
         public PartnerData BuildData(Partner match, bool extra)
         {
-            var data = (PartnerData)this;
-
-            data.Match = match;
-            data.ExtraMessage = extra;
+            var data = new PartnerData(this, match, extra);
 
             return data;
         }
@@ -55,6 +52,17 @@ namespace PartnerBot.Core.Entities
         {
             _tagSet = new(tags);
             TagString = string.Join(",", _tagSet);
+        }
+
+        /// <summary>
+        /// Gets a rough idea if the bot has been setup before or not.
+        /// </summary>
+        /// <returns>True if the bot has been setup before.</returns>
+        public bool IsSetup()
+        {
+            return !string.IsNullOrWhiteSpace(WebhookToken)
+                && WebhookId != 0
+                && !string.IsNullOrWhiteSpace(Invite);
         }
     }
 }

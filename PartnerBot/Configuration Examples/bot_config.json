@@ -1,4 +1,7 @@
 {
-    "token": "",
-    "prefix": "pb!"
+  "token": "",
+  "prefix": "pb!",
+  "owners": [ 1234, 4321 ],
+  "staff_roles": [ 1234, 4321 ],
+  "home_guild":  1234
 }

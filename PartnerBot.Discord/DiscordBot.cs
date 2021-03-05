@@ -9,6 +9,7 @@ using DSharpPlus.Interactivity.Extensions;
 
 using Microsoft.Extensions.Logging;
 
+using PartnerBot.Core.Entities.Configuration;
 using PartnerBot.Core.Services;
 using PartnerBot.Discord.Services;
 
@@ -21,6 +22,12 @@ namespace PartnerBot.Discord
         public static EventId Event_CommandErrorHandler { get; } = new EventId(127001, "Command Error Handler");
         public static EventId Event_CommandHandler { get; } = new EventId(127002, "Command Handler");
         public static EventId Event_ClientLogger { get; } = new EventId(127003, "Client Logger");
+        #endregion
+
+        #region Attribute Only Values
+        public static PartnerBotConfiguration? PbCfg { get; private set; } = null;
+        public static DiscordShardedClient? Client { get; private set; } = null;
+        public static IServiceProvider? Services { get; private set; } = null;
         #endregion
 
         private readonly PartnerSenderService _partnerSender;
@@ -36,7 +43,8 @@ namespace PartnerBot.Discord
         public DiscordBot(PartnerSenderService partnerSender,
             DiscordShardedClient client, DiscordRestClient rest,
             CommandErrorHandlingService error, CommandHandlingService command,
-            ChannelVerificationService verify, IServiceProvider serviceProvider)
+            ChannelVerificationService verify, PartnerBotConfiguration pcfg,
+            IServiceProvider serviceProvider)
         {
             _partnerSender = partnerSender;
             _client = client;
@@ -45,6 +53,10 @@ namespace PartnerBot.Discord
             _command = command;
             _verify = verify;
             _serviceProvider = serviceProvider;
+
+            Client = _client;
+            PbCfg = pcfg;
+            Services = _serviceProvider;
         }
 
         public async Task InitalizeAsync()
@@ -102,7 +114,7 @@ namespace PartnerBot.Discord
         private bool secondRun = false;
         private bool thirdRun = false;
 
-        private void OnPartnerRunTimer(object data)
+        private void OnPartnerRunTimer(object? data)
         {
             var chour = DateTime.UtcNow.Hour;
             if (chour > lastHour)

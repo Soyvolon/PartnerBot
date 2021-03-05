@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 
 using DSharpPlus;
+using DSharpPlus.Entities;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -18,7 +19,7 @@ namespace PartnerBot.Core.Services
         public const int DOUBLE_SECONDS_PER_DAY = 43200;
 
         // read and see the channels.
-        public readonly Permissions RequiredPermissions = Permissions.AccessChannels | Permissions.ReadMessageHistory;
+        public static readonly Permissions RequiredPermissions = Permissions.AccessChannels | Permissions.ReadMessageHistory;
 
         public ConcurrentBag<int> SlotsBag { get; private set; }
         public ConcurrentDictionary<ulong, ulong>[] ChannelTree { get; init; }
@@ -127,13 +128,10 @@ namespace PartnerBot.Core.Services
                     var hook = await _rest.GetWebhookAsync(id.Key);
                     var channel = await _rest.GetChannelAsync(hook.ChannelId);
 
-                    foreach (var overwrite in channel.PermissionOverwrites)
+                    if(!VerifyChannel(channel))
                     {
-                        if (overwrite.Denied.HasPermission(RequiredPermissions))
-                        {
-                            await DisablePartner(id.Value);
-                            continue;
-                        }
+                        await DisablePartner(id.Value);
+                        continue;
                     }
                 }
                 catch
@@ -157,6 +155,19 @@ namespace PartnerBot.Core.Services
             await _database.SaveChangesAsync();
 
             RemovePartner(p);
+        }
+
+        public static bool VerifyChannel(DiscordChannel c)
+        {
+            foreach (var overwrite in c.PermissionOverwrites)
+            {
+                if (overwrite.Denied.HasPermission(RequiredPermissions))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
     }
 }

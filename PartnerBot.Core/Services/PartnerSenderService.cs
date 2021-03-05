@@ -52,7 +52,7 @@ namespace PartnerBot.Core.Services
             await ExecuteWebhooksAsync(senderArgs);
         }
 
-        public async Task ExecuteWebhooksAsync(PartnerSenderArguments senderArguments)
+        private async Task ExecuteWebhooksAsync(PartnerSenderArguments senderArguments)
         {
             while(PartnerDataQueue.TryDequeue(out var data))
             {
@@ -75,10 +75,10 @@ namespace PartnerBot.Core.Services
         private async Task QueuePartnerData(IQueryable<Partner> runningPartners, IQueryable<Partner> fullSet, PartnerSenderArguments senderArguments)
         {
             // Lets queue up this task so we can use the result later ...
-            var listTask = runningPartners.ToListAsync();
-            var fullListTask = fullSet.ToListAsync();
+            var listTask = Task.Run(() => runningPartners.ToList());
+            var fullListTask = Task.Run(() => fullSet.ToList());
             // ... then build the task storage for our closeness tasks ...
-            List<Task<(ulong, SortedList<float, Partner>)>> MatchClosenessTasks = new();
+            List<Task<(ulong, List<(float, Partner)>)>> MatchClosenessTasks = new();
             // ... then get a closeness list for each partner ...
             foreach (var p in runningPartners)
             { // ... by letting the get match closeness method run for each partner ...
@@ -94,7 +94,7 @@ namespace PartnerBot.Core.Services
             ConcurrentBag<Partner> MatchBag = new(pList);
 
             // ... once we have the bag, we create the storage for the closenss results ...
-            ConcurrentDictionary<ulong, SortedList<float, Partner>> ClosenessResults = new();
+            ConcurrentDictionary<ulong, List<(float, Partner)>> ClosenessResults = new();
             // ... then wait for the closeness tasks to finish ...
             foreach (var t in MatchClosenessTasks)
             {
@@ -116,14 +116,14 @@ namespace PartnerBot.Core.Services
                 var res = ClosenessResults[p.GuildId];
                 // ... for all the items in the results ...
                 bool matched = false;
-                foreach(var i in res.Keys)
+                foreach(var i in res)
                 {
                     // ... skip the item if it has been matched ...
-                    if (MatchedSet.Contains(res[i].GuildId)) continue;
+                    if (MatchedSet.Contains(i.Item2.GuildId)) continue;
 
                     // ... if none of those are true, we have a match, so lets save it ...
-                    var homeMatch = p.BuildData(res[i], false);
-                    var awayMatch = res[i].BuildData(p, false);
+                    var homeMatch = p.BuildData(i.Item2, false);
+                    var awayMatch = i.Item2.BuildData(p, false);
 
                     // ... then we queue these matches ...
                     PartnerDataQueue.Enqueue(homeMatch);
@@ -131,10 +131,10 @@ namespace PartnerBot.Core.Services
 
                     // ... finally store the matches ...
                     MatchedSet.Add(p.GuildId);
-                    MatchedSet.Add(res[i].GuildId);
+                    MatchedSet.Add(i.Item2.GuildId);
                     // ... if cacheing is not turned off, cache this match ...
                     if (!senderArguments.IgnoreCacheMatch)
-                        CacheMatch(p.GuildId, res[i].GuildId);
+                        CacheMatch(p.GuildId, i.Item2.GuildId);
 
                     matched = true;
                     break;
@@ -229,12 +229,12 @@ namespace PartnerBot.Core.Services
 
         #region Match Closeness
 
-        private Task<(ulong, SortedList<float, Partner>)> GetMatchCloseness(Partner toMatch, IQueryable<Partner> fullList, PartnerSenderArguments senderArguments)
+        private Task<(ulong, List<(float, Partner)>)> GetMatchCloseness(Partner toMatch, IQueryable<Partner> fullList, PartnerSenderArguments senderArguments)
         {
             // We want to get a value between 0 and 1, where 1 is a perfect match and 0 is a very bad match.
             // The match should compare tags, the server owner, the cahced servers, and server size.
 
-            SortedList<float, Partner> matches = new();
+            List<(float, Partner)> matches = new();
             // ... for every partner in the full list ...
             foreach(var item in fullList)
             {
@@ -269,8 +269,10 @@ namespace PartnerBot.Core.Services
                     match *= dif;
                 }
                 // ... then add it as a value of the matches array.
-                matches.Add(match, item);
+                matches.Add((match, item));
             }
+
+            matches.Sort((x, y) => y.Item1.CompareTo(x.Item1));
 
             return Task.FromResult((toMatch.GuildId, matches));
         }
@@ -278,7 +280,7 @@ namespace PartnerBot.Core.Services
         #endregion
 
         #region Development Dataset
-        public async Task<(IQueryable<Partner>, IQueryable<Partner>)> GetDevelopmentStressTestDataset(PartnerSenderArguments senderArguments)
+        private async Task<(IQueryable<Partner>, IQueryable<Partner>)> GetDevelopmentStressTestDataset(PartnerSenderArguments senderArguments)
         {
             var data = await DevelopmentStressTestDataManager.GetDataAsync();
 

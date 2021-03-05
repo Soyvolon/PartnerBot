@@ -37,5 +37,13 @@ namespace PartnerBot.Discord.Commands
             return new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Green);
         }
+
+        public async Task InteractTimeout(string message = "Interactivty Timed Out.")
+        {
+            var embed = ErrorBase()
+                .WithDescription(message);
+
+            await ctx.RespondAsync(embed: embed);
+        }
     }
 }

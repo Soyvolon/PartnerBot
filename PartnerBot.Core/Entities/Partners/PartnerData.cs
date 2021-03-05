@@ -10,6 +10,17 @@ namespace PartnerBot.Core.Entities
         public Partner Match { get; internal set; }
         public bool ExtraMessage { get; internal set; }
 
+        public PartnerData(Partner self, Partner match, bool extra)
+        {
+            foreach (var prop in self.GetType().GetProperties())
+            {
+                this.GetType().GetProperty(prop.Name)?.SetValue(this, prop.GetValue(self, null), null);
+            }
+
+            Match = match;
+            ExtraMessage = extra;
+        }
+
         public async Task ExecuteAsync(DiscordRestClient rest, PartnerSenderArguments senderArguments)
         {
             if (senderArguments.DevelopmentStressTest)
@@ -37,17 +48,22 @@ namespace PartnerBot.Core.Entities
         private async Task ExecuteStressTestMessage(DiscordRestClient rest)
         {
             var hook = new DiscordWebhookBuilder()
-                .WithContent("```\n" +
+                .WithContent($"This Channel: <#{GuildId}>" +
+                "\n```\n" +
                 "STRESS TEST\n\n" +
-                "This Partner:\n" +
+                $"This Partner ({GuildName}):\n" +
                 $"ID: {GuildId}\n" +
                 $"Tags: {string.Join(", ", GetTags())}\n" +
-                $"Size: {UserCount}\n\n" +
-                $"Other Partner:" +
+                $"Size: {UserCount}\n" +
+                $"Donor Rank: {DonorRank}\n\n" +
+                $"Other Partner ({Match.GuildName}):\n" +
                 $"ID: {Match.GuildId}\n" +
                 $"Tags: {string.Join(", ", Match.GetTags())}\n" +
-                $"Size: {Match.UserCount}" +
-                $"\n```")
+                $"Size: {Match.UserCount}\n" +
+                $"Donor Rank: {Match.DonorRank}\n" +
+                $"Extra: {ExtraMessage}" +
+                $"\n```\n" +
+                $"Other Channel: <#{Match.GuildId}>")
                 .AddEmbed(new DiscordEmbedBuilder()
                     .WithColor(DiscordColor.Gray)
                     .WithTitle("Partner Bot Advertisment")

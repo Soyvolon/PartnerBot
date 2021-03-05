@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
@@ -11,6 +12,11 @@
   <ItemGroup>
     <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-nightly-00808" />
     <PackageReference Include="DSharpPlus.Interactivity" Version="4.0.0-nightly-00808" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Commands\Admin\" />
+    <Folder Include="Commands\Tags\" />
   </ItemGroup>
 
 </Project>
