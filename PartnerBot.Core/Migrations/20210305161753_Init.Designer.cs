@@ -8,7 +8,7 @@ using PartnerBot.Core.Database;
 namespace PartnerBot.Core.Migrations
 {
     [DbContext(typeof(PartnerDatabaseContext))]
-    [Migration("20210305155208_Init")]
+    [Migration("20210305161753_Init")]
     partial class Init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -16,6 +16,21 @@ namespace PartnerBot.Core.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("ProductVersion", "5.0.3");
+
+            modelBuilder.Entity("PartnerBot.Core.Entities.Configuration.DiscordGuildConfiguration", b =>
+                {
+                    b.Property<ulong>("GuildId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Prefix")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("GuildId");
+
+                    b.ToTable("GuildConfigurations");
+                });
 
             modelBuilder.Entity("PartnerBot.Core.Entities.Partner", b =>
                 {

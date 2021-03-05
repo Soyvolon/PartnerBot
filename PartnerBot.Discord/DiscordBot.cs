@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Reflection;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
-using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 
 using Microsoft.Extensions.Logging;
@@ -19,6 +16,13 @@ namespace PartnerBot.Discord
 {
     public class DiscordBot
     {
+        #region Event Ids
+        // 127### - designates a Discord Bot event.
+        public static EventId Event_CommandErrorHandler { get; } = new EventId(127001, "Command Error Handler");
+        public static EventId Event_CommandHandler { get; } = new EventId(127002, "Command Handler");
+        public static EventId Event_ClientLogger { get; } = new EventId(127003, "Client Logger");
+        #endregion
+
         private readonly PartnerSenderService _partnerSender;
         private readonly DiscordShardedClient _client;
         private readonly DiscordRestClient _rest;

@@ -15,6 +15,21 @@ namespace PartnerBot.Core.Migrations
             modelBuilder
                 .HasAnnotation("ProductVersion", "5.0.3");
 
+            modelBuilder.Entity("PartnerBot.Core.Entities.Configuration.DiscordGuildConfiguration", b =>
+                {
+                    b.Property<ulong>("GuildId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Prefix")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("GuildId");
+
+                    b.ToTable("GuildConfigurations");
+                });
+
             modelBuilder.Entity("PartnerBot.Core.Entities.Partner", b =>
                 {
                     b.Property<ulong>("GuildId")

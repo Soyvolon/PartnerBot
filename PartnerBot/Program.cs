@@ -63,7 +63,7 @@ namespace PartnerBot
             {
                 options.UseSqlite(dbConfig.PartnerbotDataSource);
             },
-            ServiceLifetime.Scoped, ServiceLifetime.Scoped)
+            ServiceLifetime.Transient, ServiceLifetime.Scoped)
                 .AddSingleton<DiscordShardedClient>((s) =>
                 {
                     return new(botCfg);

@@ -9,10 +9,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Commands\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0-nightly-00808" />
     <PackageReference Include="DSharpPlus.Interactivity" Version="4.0.0-nightly-00808" />
   </ItemGroup>

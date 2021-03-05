@@ -7,6 +7,19 @@ namespace PartnerBot.Core.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "GuildConfigurations",
+                columns: table => new
+                {
+                    GuildId = table.Column<ulong>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Prefix = table.Column<string>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GuildConfigurations", x => x.GuildId);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Partners",
                 columns: table => new
                 {
@@ -35,6 +48,9 @@ namespace PartnerBot.Core.Migrations
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "GuildConfigurations");
+
             migrationBuilder.DropTable(
                 name: "Partners");
         }
