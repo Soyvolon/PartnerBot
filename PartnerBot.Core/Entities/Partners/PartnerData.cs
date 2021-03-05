@@ -5,19 +5,37 @@ using System.Text;
 using System.Threading.Tasks;
 
 using DSharpPlus;
-
-using PartnerBot.Core.Interfaces;
+using DSharpPlus.Entities;
 
 namespace PartnerBot.Core.Entities
 {
-    public class PartnerData : Partner, IAsyncExecutable
+    public class PartnerData : Partner
     {
         public Partner Match { get; internal set; }
         public bool ExtraMessage { get; internal set; }
 
-        public async Task ExecuteAsync()
+        public async Task ExecuteAsync(DiscordRestClient rest, PartnerSenderArguments senderArguments)
         {
-            throw new NotImplementedException();
+            if(senderArguments.DevelopmentStressTest)
+            {
+                await ExecuteStressTestMessage(rest);
+                return;
+            }
+
+            var hook = new DiscordWebhookBuilder()
+                .WithContent(Match.Message)
+                .AddEmbed(new DiscordEmbedBuilder()
+                    .WithColor(DiscordColor.Gray)
+                    .WithTitle("Partner Bot Advertisment")
+                    .WithDescription($"**ID:** {Match.GuildId}")
+                    .WithImageUrl(Match.Banner));
+
+            await rest.ExecuteWebhookAsync(WebhookId, WebhookToken, hook);
+        }
+
+        private async Task ExecuteStressTestMessage(DiscordRestClient rest)
+        {
+
         }
     }
 }

@@ -130,17 +130,21 @@ namespace PartnerBot.Core.Services
                         if (overwrite.Denied.HasPermission(RequiredPermissions))
                         {
                             await DisablePartner(id.Value);
+                            continue;
                         }
                     }
                 }
                 catch
                 {
                     await DisablePartner(id.Value);
+                    continue;
                 }
-                finally
-                {
-                    await Task.Delay(TimeSpan.FromSeconds(0.15));
-                }
+
+                var guild = await _rest.GetGuildAsync(id.Value);
+
+                var p = await _database.FindAsync<Partner>(id.Value);
+                p.UserCount = guild.MemberCount;
+                await _database.SaveChangesAsync();
             }
         }
 

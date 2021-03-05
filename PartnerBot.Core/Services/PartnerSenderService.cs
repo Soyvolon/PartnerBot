@@ -12,14 +12,9 @@ using DSharpPlus;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
-
-
 using PartnerBot.Core.Database;
 using PartnerBot.Core.Entities;
-using PartnerBot.Core.Interfaces;
 using PartnerBot.Core.Utils;
-
-using static System.Text.Json.JsonElement;
 
 namespace PartnerBot.Core.Services
 {
@@ -58,7 +53,15 @@ namespace PartnerBot.Core.Services
             await QueuePartnerData(active.Item1, active.Item2, senderArgs);
 
             // ... then execute the queue (off with its head!)
+            await ExecuteWebhooksAsync(senderArgs);
+        }
 
+        public async Task ExecuteWebhooksAsync(PartnerSenderArguments senderArguments)
+        {
+            while(PartnerDataQueue.TryDequeue(out var data))
+            {
+                await data.ExecuteAsync(_rest, senderArguments);
+            }
         }
 
         private (IQueryable<Partner>, IQueryable<Partner>) GetActivePartners(PartnerSenderArguments senderArgs)
@@ -83,7 +86,7 @@ namespace PartnerBot.Core.Services
             // ... then get a closeness list for each partner ...
             foreach (var p in runningPartners)
             { // ... by letting the get match closeness method run for each partner ...
-                MatchClosenessTasks.Add(GetMatchCloseness(p, runningPartners));
+                MatchClosenessTasks.Add(GetMatchCloseness(p, runningPartners, senderArguments));
             }
             // ... while that runs, lets scramble and bag all of the partners ...
 
@@ -230,12 +233,48 @@ namespace PartnerBot.Core.Services
 
         #region Match Closeness
 
-        private Task<(ulong, SortedList<float, Partner>)> GetMatchCloseness(Partner toMatch, IQueryable<Partner> fullList)
+        private Task<(ulong, SortedList<float, Partner>)> GetMatchCloseness(Partner toMatch, IQueryable<Partner> fullList, PartnerSenderArguments senderArguments)
         {
-            // TODO get match percentage
-            // TODO Check against cache, make sure no cached results are in the sorted list
-            // TODO Ensure no guilds with the same owner are in the sorted list
-            throw new NotImplementedException();
+            // We want to get a value between 0 and 1, where 1 is a perfect match and 0 is a very bad match.
+            // The match should compare tags, the server owner, the cahced servers, and server size.
+
+            SortedList<float, Partner> matches = new();
+            // ... for every partner in the full list ...
+            foreach(var item in fullList)
+            {
+                float match = 1.0f;
+                // ... ignore values that are by the same owner ...
+                if (!senderArguments.IgnoreOwnerMatch)
+                    if (toMatch.OwnerId == item.OwnerId) continue;
+                // ... and those saved in the cache ...
+                if (!senderArguments.IgnoreCacheMatch)
+                    if (CheckCache(toMatch.GuildId, item.GuildId)) continue;
+
+                float matchedTags = 0.0f;
+                // ... for every tag in the to match ...
+                foreach(var t in toMatch.Tags)
+                { // ... add one if there is a matching tag in the potential parter ...
+                    if (item.Tags.Contains(t))
+                        matchedTags++;
+                }
+                // ... then get the larger of the two tag counts ...
+                int largestTagCount = Math.Max(toMatch.Tags.Count, item.Tags.Count);
+                // ... and the percentage of tags that match each other ...
+                float tagMatchPercentage = matchedTags / largestTagCount;
+                // ... then multiply the starting value by the percentage ...
+                match *= tagMatchPercentage;
+                // ... then if both partners have a registered user count ...
+                if(toMatch.UserCount != -1 && item.UserCount != -1)
+                { // ... divide the difference in user counts by the larger of the two partners ...
+                    float dif = (float)Math.Abs(toMatch.UserCount - item.UserCount) / Math.Max(toMatch.UserCount, item.UserCount);
+                    // ... and multiply that value by the match value ...
+                    match *= dif;
+                }
+                // ... then add it as a value of the matches array.
+                matches.Add(match, item);
+            }
+
+            return Task.FromResult((toMatch.GuildId, matches));
         }
 
         #endregion
@@ -250,6 +289,7 @@ namespace PartnerBot.Core.Services
 
             List<Partner> fullSet = new();
 
+            ulong lastOwner = 0;
             foreach(var item in data)
             {
                 Partner p = new()
@@ -261,12 +301,22 @@ namespace PartnerBot.Core.Services
                     WebhookId = item.WebhookId,
                     WebhookToken = item.WebhookToken,
                     Tags = item.Tags,
-                    NSFW = ThreadSafeRandom.Next(1, 20) < 2
+                    NSFW = ThreadSafeRandom.Next(1, 20) < 2,
+                    UserCount = ThreadSafeRandom.Next(1, 10001)
                 };
+
+                if (lastOwner != 0)
+                {
+                    var num = ThreadSafeRandom.Next(0, 100);
+                    if (num < 5)
+                        p.OwnerId = lastOwner;
+                }
 
                 p.ReceiveNSFW = p.NSFW ? true : ThreadSafeRandom.Next(1, 20) < 10;
 
                 fullSet.Add(p);
+
+                lastOwner = item.ChannelId;
             }
 
             var donorSet = fullSet.Where(x => x.DonorRank >= senderArguments.DonorRun);
