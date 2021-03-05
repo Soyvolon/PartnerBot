@@ -25,7 +25,7 @@ namespace PartnerBot.Core.Services
         public ConcurrentBag<int> SlotsBag { get; private set; }
         public ConcurrentDictionary<ulong, ulong>[] ChannelTree { get; init; }
         public ConcurrentDictionary<ulong, int> SlotTree { get; private set; }
-        public Timer VerificationTimer { get; private set; }
+        public Timer? VerificationTimer { get; private set; }
 
         private readonly PartnerDatabaseContext _database;
         private readonly DiscordRestClient _rest;
@@ -46,6 +46,7 @@ namespace PartnerBot.Core.Services
         {
             SlotsBag = new();
             SlotTree = new();
+            VerificationTimer = null;
 
             for (int i = 0; i < DOUBLE_SECONDS_PER_DAY; i++)
             {
@@ -72,7 +73,10 @@ namespace PartnerBot.Core.Services
             }
 
             CurrentSlot = -1; // auto increments at start, so set init to -1;
+        }
 
+        public void Start()
+        {
             VerificationTimer = new(
                 async (x) => await VerifyNextSlot(),
                 null,

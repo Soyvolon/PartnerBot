@@ -252,13 +252,15 @@ namespace PartnerBot.Core.Services
 
                 float matchedTags = 0.0f;
                 // ... for every tag in the to match ...
-                foreach(var t in toMatch.Tags)
+                var itemTags = item.GetTags();
+                var matchTags = toMatch.GetTags();
+                foreach(var t in matchTags)
                 { // ... add one if there is a matching tag in the potential parter ...
-                    if (item.Tags.Contains(t))
+                    if (itemTags.Contains(t))
                         matchedTags++;
                 }
                 // ... then get the larger of the two tag counts ...
-                int largestTagCount = Math.Max(toMatch.Tags.Count, item.Tags.Count);
+                int largestTagCount = Math.Max(matchTags.Count, itemTags.Count);
                 // ... and the percentage of tags that match each other ...
                 float tagMatchPercentage = matchedTags / largestTagCount;
                 // ... then multiply the starting value by the percentage ...
@@ -300,10 +302,11 @@ namespace PartnerBot.Core.Services
                     OwnerId = item.ChannelId,
                     WebhookId = item.WebhookId,
                     WebhookToken = item.WebhookToken,
-                    Tags = item.Tags,
                     NSFW = ThreadSafeRandom.Next(1, 20) < 2,
                     UserCount = ThreadSafeRandom.Next(1, 10001)
                 };
+
+                p.SetTags(item.Tags);
 
                 if (lastOwner != 0)
                 {

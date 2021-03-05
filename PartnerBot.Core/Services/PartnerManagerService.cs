@@ -101,7 +101,7 @@ namespace PartnerBot.Core.Services
                 p.Banner = data.Banner;
 
             if (data.Tags is not null)
-                p.Tags = data.Tags;
+                p.SetTags(data.Tags);
 
             if (data.Invite is not null)
                 p.Invite = data.Invite;

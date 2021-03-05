@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Design;
 
 
 
-using PartnerBot.Core.Database.Config;
+using PartnerBot.Core.Database.Configuration;
 
 namespace PartnerBot.Core.Database
 {
@@ -17,20 +17,14 @@ namespace PartnerBot.Core.Database
             PartnerDatabaseConfiguration dbConfig;
             using (FileStream fs = new(Path.Join("Config", "database_config.json"), FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                using StreamReader sr = new(fs);
+                StreamReader sr = new(fs);
                 var json = sr.ReadToEnd();
-                var configDoc = JsonDocument.Parse(json);
 
-                configDoc.RootElement.TryGetProperty("partner_database_source", out var source);
-                
-                dbConfig = new()
-                {
-                    DataSource = source.ToString() ?? ""
-                };
+                dbConfig = JsonSerializer.Deserialize<PartnerDatabaseConfiguration>(json) ?? throw new System.Exception("Failed to read Partner Database config");
             }
 
             var optionsBuilder = new DbContextOptionsBuilder<PartnerDatabaseContext>();
-            optionsBuilder.UseSqlite(dbConfig.DataSource);
+            optionsBuilder.UseSqlite(dbConfig.PartnerbotDataSource);
 
             return new PartnerDatabaseContext(optionsBuilder.Options);
         }
