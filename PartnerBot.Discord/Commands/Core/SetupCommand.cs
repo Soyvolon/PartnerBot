@@ -16,24 +16,13 @@ namespace PartnerBot.Discord.Commands.Core
     public class SetupCommand : CommandModule
     {
         [Command("setup")]
-        [Description("First time setup for Partner Bot. Can be used multiple times.")]
-        [RequireServerAdminOrOwner]
-        public async Task SetupCommandAsync(CommandContext ctx, 
-            [Description("Channel to send partner messages to.")]
-            DiscordChannel channel, 
-
-            [RemainingText]
-            [Description("Partner message to send to other servers.")]
-            string message = "")
-        {
-
-        }
-
-        [Command("setup")]
         [Description("Interactive Setup for Partner Bot")]
+        [RequireServerAdminOrOwner]
         public async Task InteractiveSetupCommandAsync(CommandContext ctx)
         {
 
         }
+
+        private async Task 
     }
 }

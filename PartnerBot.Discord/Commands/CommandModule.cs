@@ -7,23 +7,25 @@ namespace PartnerBot.Discord.Commands
 {
     public class CommandModule : BaseCommandModule
     {
-        private CommandContext ctx;
+        public static readonly DiscordColor Color_PartnerBotMagenta = new(0xe91e63);
+
+        protected CommandContext Context { get; private set; }
 
         public override Task BeforeExecutionAsync(CommandContext ctx)
         {
-            this.ctx = ctx;
+            this.Context = ctx;
             base.BeforeExecutionAsync(ctx);
             return Task.CompletedTask;
         }
 
         protected async Task RespondError(string message)
         {
-            await ctx.RespondAsync(ErrorBase().WithDescription(message));
+            await Context.RespondAsync(ErrorBase().WithDescription(message));
         }
 
         protected async Task RespondSuccess(string message)
         {
-            await ctx.RespondAsync(SuccessBase().WithDescription(message));
+            await Context.RespondAsync(SuccessBase().WithDescription(message));
         }
 
         public static DiscordEmbedBuilder ErrorBase()
@@ -43,7 +45,7 @@ namespace PartnerBot.Discord.Commands
             var embed = ErrorBase()
                 .WithDescription(message);
 
-            await ctx.RespondAsync(embed: embed);
+            await Context.RespondAsync(embed: embed);
         }
     }
 }

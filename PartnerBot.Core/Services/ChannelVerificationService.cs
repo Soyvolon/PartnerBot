@@ -161,7 +161,7 @@ namespace PartnerBot.Core.Services
         {
             foreach (var overwrite in c.PermissionOverwrites)
             {
-                if (overwrite.Denied.HasPermission(RequiredPermissions))
+                if (!overwrite.Allowed.HasPermission(RequiredPermissions))
                 {
                     return false;
                 }
