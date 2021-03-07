@@ -12,11 +12,15 @@ using DSharpPlus.Interactivity.Extensions;
 
 using PartnerBot.Core.Entities;
 using PartnerBot.Core.Services;
+using PartnerBot.Core.Utils;
 
 namespace PartnerBot.Discord.Commands.Core
 {
     public class CoreCommandModule : CommandModule
     {
+        // Items with three outputs (object, string?, bool) follow: (output, error message, fatal error). Commands should immedietly stop running if a
+        // fatal error is returned.
+
         protected DiscordEmbed SetupBase { get; set; } = new DiscordEmbedBuilder()
         {
             Title = "Partner Bot Setup - Main",
@@ -31,7 +35,7 @@ namespace PartnerBot.Discord.Commands.Core
             Color = Color_PartnerBotMagenta
         };
 
-        protected async Task<(InteractivityResult<DiscordMessage>, bool)> WaitForFollowupMessage(InteractivityExtension interact)
+        protected async Task<(InteractivityResult<DiscordMessage>, bool)> GetFollowupMessageAsync(InteractivityExtension interact)
         {
             var res = await interact.WaitForMessageAsync(x => x.Author.Id == Context.Member.Id
                     && x.ChannelId == Context.Channel.Id);
@@ -42,10 +46,12 @@ namespace PartnerBot.Discord.Commands.Core
                 return (res, false);
             }
 
+            await res.Result.DeleteAsync();
+
             return (res, true);
         }
 
-        protected async Task<(DiscordChannel?, string?, bool)> GetNewPartnerChannelAsync(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
+        protected async Task<(DiscordChannel?, string?, bool)> GetNewPartnerChannelAsync(DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
         {
             var interact = Context.Client.GetInteractivity();
             var color = DiscordColor.Purple;
@@ -63,7 +69,7 @@ namespace PartnerBot.Discord.Commands.Core
             bool valid = false;
             do
             {
-                var folloup = await WaitForFollowupMessage(interact);
+                var folloup = await GetFollowupMessageAsync(interact);
 
                 if (!folloup.Item2) return (null, null, true);
 
@@ -138,7 +144,7 @@ namespace PartnerBot.Discord.Commands.Core
                             .WithColor(DiscordColor.Red)
                             .Build());
 
-                        folloup = await WaitForFollowupMessage(interact);
+                        folloup = await GetFollowupMessageAsync(interact);
 
                         if (!folloup.Item2) return (null, null, true);
 
@@ -196,21 +202,79 @@ namespace PartnerBot.Discord.Commands.Core
             return (true, null);
         }
 
-        protected async Task<(string?, string?, bool)> GetNewPartnerMessage(Partner p, DiscordMessage statusMessage)
+        protected async Task<(string?, string?, bool)> GetNewPartnerMessage(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
+        {
+            var interact = Context.Client.GetInteractivity();
+
+            await statusMessage.ModifyAsync(statusEmbed
+                .WithTitle("Partner Bot Setup - Message")
+                .WithDescription("Welcome to the Partner Message setter. Please enter your new partner message.")
+                .WithColor(DiscordColor.Aquamarine)
+                .Build());
+
+            bool first = true;
+            DiscordMessage? pMessage = null;
+            string? message = null;
+            do
+            {
+                var response = await GetFollowupMessageAsync(interact);
+
+                if (!response.Item2) return (null, null, true);
+
+                var res = response.Item1;
+
+                var msg = res.Result.Content;
+
+                if (!first && msg.ToLower().Trim().Equals("save"))
+                {
+                    break;
+                }
+
+                var links = msg.GetUrls();
+
+                int c = 0;
+                foreach (var l in links)
+                {
+                    if (c >= p.DonorRank)
+                    {
+                        msg = msg.Remove(msg.IndexOf(l), l.Length);
+                    }
+                    else
+                    {
+                        if(l.ContainsDiscordUrl())
+                        {
+                            msg = msg.Remove(msg.IndexOf(l), l.Length);
+                        }
+                    }
+                }
+
+                await statusMessage.ModifyAsync(statusEmbed
+                    .WithColor(DiscordColor.Aquamarine)
+                    .WithDescription("This is your partner message, an invite will be added automatically when it is sent." +
+                    " Is this how you would like your message to look? If yes, type `save`, otherwise enter a new Partner Message.")
+                    .Build());
+
+                pMessage = await Context.RespondAsync(msg);
+                message = msg;
+
+                first = false;
+            }
+            while (true);
+
+            if(pMessage is not null)
+                await pMessage.DeleteAsync();
+
+            return (message, null, false);
+        }
+
+        protected async Task<(Uri?, string?, bool)> GetNewPartnerBanner(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
         {
             var interact = Context.Client.GetInteractivity();
 
             throw new NotImplementedException();
         }
 
-        protected async Task<(Uri?, string?, bool)> GetNewPartnerBanner(Partner p, DiscordMessage statusMessage)
-        {
-            var interact = Context.Client.GetInteractivity();
-
-            throw new NotImplementedException();
-        }
-
-        protected async Task<(DiscordEmbedBuilder?, string?, bool)> GetCustomDiscordEmbedAsync(Partner p, DiscordMessage statusMessage)
+        protected async Task<(DiscordEmbedBuilder?, string?, bool)> GetCustomDiscordEmbedAsync(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
         {
             var interact = Context.Client.GetInteractivity();
 
