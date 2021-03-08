@@ -225,10 +225,31 @@ namespace PartnerBot.Discord.Commands.Core
 
                 var msg = res.Result.Content;
 
-                if (!first && msg.ToLower().Trim().Equals("save"))
+                var trimed = msg.ToLower().Trim();
+
+                if(trimed.Equals("exit"))
                 {
-                    break;
+                    await RespondError("Aborting...");
+                    return (null, null, true);
                 }
+                else if (!first 
+                    && trimed.Equals("save"))
+                {
+                    if (!string.IsNullOrWhiteSpace(message))
+                        break;
+                    else
+                    {
+                        await statusMessage.ModifyAsync(statusEmbed
+                            .WithColor(DiscordColor.DarkRed)
+                            .WithDescription("A Partner Message cannot be empty! Please input a valid partner message before saving.")
+                            .Build());
+
+                        continue;
+                    }
+                }
+
+                if (pMessage is not null)
+                    await pMessage.DeleteAsync();
 
                 var links = msg.GetUrls();
 
@@ -267,11 +288,91 @@ namespace PartnerBot.Discord.Commands.Core
             return (message, null, false);
         }
 
-        protected async Task<(Uri?, string?, bool)> GetNewPartnerBanner(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
+        protected async Task<(Uri?, string?, bool)> GetNewPartnerBanner(DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
         {
             var interact = Context.Client.GetInteractivity();
 
-            throw new NotImplementedException();
+            await statusMessage.ModifyAsync(statusEmbed
+                .WithTitle("Partner Bot Setup - Banner")
+                .WithDescription("Welcome to the banner selector. Please upload a new image or input an image URL. The image URL must end in" +
+                " an image extension such as `.png`, `.jpg`, or `.gif`")
+                .WithColor(DiscordColor.HotPink)
+                .Build());
+
+            Uri? bannerUrl = null;
+            DiscordMessage? displayMsg = null;
+            bool first = true;
+            do
+            {
+                var response = await GetFollowupMessageAsync(interact);
+
+                if (!response.Item2) return (null, null, true);
+
+                var res = response.Item1;
+
+                var trimed = res.Result.Content.ToLower().Trim();
+
+                if (trimed.Equals("exit"))
+                {
+                    await RespondError("Aborting...");
+                    return (null, null, true);
+                }
+                else if (!first && trimed.Equals("save"))
+                {
+                    if(bannerUrl is not null)
+                        break;
+                    else
+                    {
+                        await statusMessage.ModifyAsync(statusEmbed
+                               .WithColor(DiscordColor.DarkRed)
+                               .WithDescription("The Banner URL cannot be empty! Please input a valid banner before saving.")
+                               .Build());
+
+                        continue;
+                    }
+                }
+
+                if (displayMsg is not null)
+                    await displayMsg.DeleteAsync();
+                
+                if(res.Result.Attachments.Count >= 0)
+                {
+                    _ = Uri.TryCreate(res.Result.Attachments[0].Url, UriKind.Absolute, out bannerUrl);
+                }
+                else
+                {
+                    var links = res.Result.Content.GetUrls();
+
+                    _ = Uri.TryCreate(links[0], UriKind.Absolute, out bannerUrl);
+                }
+
+                if(bannerUrl is null)
+                {
+                    await statusMessage.ModifyAsync(statusEmbed
+                        .WithDescription("No image was uploaded or an invalid link was provided. Please include the full link if you used a link.\n\n" +
+                        "Type `exit` to quit, upload a new image, or input a new link.")
+                        .WithColor(DiscordColor.DarkRed)
+                        .Build());
+                }
+                else
+                {
+                    await statusMessage.ModifyAsync(statusEmbed
+                        .WithDescription("The following image will be used as your banner image. Make sure it shows up properly in the embed, then type `save`." +
+                        " If nothing shows up, make sure your link is correct or try uploading a new image.")
+                        .WithColor(DiscordColor.HotPink)
+                        .Build());
+
+                    displayMsg = await Context.RespondAsync(new DiscordEmbedBuilder()
+                        .WithImageUrl(bannerUrl));
+                }
+
+                first = false;
+            } while (true);
+
+            if (displayMsg is not null)
+                await displayMsg.DeleteAsync();
+
+            return (bannerUrl, null, false);
         }
 
         protected async Task<(DiscordEmbedBuilder?, string?, bool)> GetCustomDiscordEmbedAsync(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
@@ -281,11 +382,24 @@ namespace PartnerBot.Discord.Commands.Core
             throw new NotImplementedException();
         }
 
-        protected async Task<(DiscordColor?, string?, bool)> GetCustomEmbedColorAsync(Partner p, DiscordMessage statusMessage)
+        protected async Task<(DiscordColor?, string?, bool)> GetCustomEmbedColorAsync(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
         {
             var interact = Context.Client.GetInteractivity();
 
-            throw new NotImplementedException();
+            await statusMessage.ModifyAsync(statusEmbed
+                .WithTitle("Partner Bot Setup - Color")
+                .WithDescription("")
+                .WithColor(DiscordColor.Sienna)
+                .Build());
+
+            bool done = false;
+            DiscordColor? color = null;
+            do
+            {
+
+            } while (!done);
+
+            return (color, null, false);
         }
     }
 }
