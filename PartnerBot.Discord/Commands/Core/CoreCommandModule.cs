@@ -388,7 +388,8 @@ namespace PartnerBot.Discord.Commands.Core
 
             await statusMessage.ModifyAsync(statusEmbed
                 .WithTitle("Partner Bot Setup - Color")
-                .WithDescription("")
+                .WithDescription("Welcome to the color selector. Please input a new Hex color, such as `#16f03a`, or a new RGB value such as `22,240,58`.\n\n" +
+                "You can use google's [Color Picker](https://www.google.com/search?q=color+picker) to pick a good color.")
                 .WithColor(DiscordColor.Sienna)
                 .Build());
 
@@ -396,7 +397,97 @@ namespace PartnerBot.Discord.Commands.Core
             DiscordColor? color = null;
             do
             {
+                var folloup = await GetFollowupMessageAsync(interact);
 
+                if (!folloup.Item2) return (null, null, true);
+
+                var res = folloup.Item1;
+
+                var msg = res.Result.Content.Trim().ToLower();
+
+                if (msg.Equals("exit"))
+                {
+                    await RespondError("Setup cancled");
+                    return (null, null, true);
+                }
+
+                var first = msg.Split(" ", StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+
+                if(first is null)
+                {
+                    await statusMessage.ModifyAsync(statusEmbed
+                        .WithColor(DiscordColor.DarkRed)
+                        .WithDescription("An RGB color value must have three numerical parts between 0 and 255." +
+                        " `R,G,B`. Please enter a valid hex or RGB value.")
+                        .Build());
+
+                    continue;
+                }
+
+                if(first.Contains(","))
+                {
+                    var parts = first.Split(",", StringSplitOptions.RemoveEmptyEntries);
+                    if (parts.Length <= 3)
+                    {
+                        await statusMessage.ModifyAsync(statusEmbed
+                            .WithColor(DiscordColor.DarkRed)
+                            .WithDescription("An RGB color value must have three numerical parts between 0 and 255." +
+                            " `R,G,B`. Please enter a valid hex or RGB value.\n\n" +
+                            "You can use google's [Color Picker](https://www.google.com/search?q=color+picker) to pick valid colors.")
+                            .Build());
+                    }
+                    else
+                    {
+                        bool valid = true;
+                        valid &= float.TryParse(parts[0], out var one);
+                        valid &= float.TryParse(parts[1], out var two);
+                        valid &= float.TryParse(parts[2], out var three);
+
+                        if (valid)
+                        {
+                            try
+                            {
+                                color = new(one, two, three);
+                                done = true;
+                            }
+                            catch
+                            {
+                                await statusMessage.ModifyAsync(statusEmbed
+                                    .WithColor(DiscordColor.DarkRed)
+                                    .WithDescription("An RGB color value must have three numerical parts between 0 and 255." +
+                                    " `R,G,B`. Please enter a valid hex or RGB value.\n\n" +
+                                    "You can use google's [Color Picker](https://www.google.com/search?q=color+picker) to pick valid colors.")
+                                    .Build());
+                            }
+                        }
+                        else
+                        {
+                            await statusMessage.ModifyAsync(statusEmbed
+                                .WithColor(DiscordColor.DarkRed)
+                                .WithDescription("An RGB color value must have three numerical parts between 0 and 255." +
+                                " `R,G,B`. Please enter a valid hex or RGB value.\n\n" +
+                                "You can use google's [Color Picker](https://www.google.com/search?q=color+picker) to pick valid colors.")
+                                .Build());
+                        }
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        color = new(first);
+                        done = true;
+                    }
+                    catch
+                    {
+                        await statusMessage.ModifyAsync(statusEmbed
+                            .WithColor(DiscordColor.DarkRed)
+                            .WithDescription("A Hex value must be 6 alphanumeric values. Please enter a valid hex value." +
+                            " `R,G,B`. Please enter a valid hex or RGB value.\n\n" +
+                            "You can use google's [Color Picker](https://www.google.com/search?q=color+picker) to pick valid colors.")
+                            .Build());
+                    }
+                }
             } while (!done);
 
             return (color, null, false);
