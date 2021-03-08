@@ -439,9 +439,15 @@ namespace PartnerBot.Discord.Commands.Core
                     else
                     {
                         bool valid = true;
-                        valid &= float.TryParse(parts[0], out var one);
-                        valid &= float.TryParse(parts[1], out var two);
-                        valid &= float.TryParse(parts[2], out var three);
+
+                        float one = 0f, two = 0f, three = 0f;
+
+                        if(valid)
+                            valid &= float.TryParse(parts[0], out one);
+                        if(valid)
+                            valid &= float.TryParse(parts[1], out two);
+                        if(valid)
+                            valid &= float.TryParse(parts[2], out three);
 
                         if (valid)
                         {
