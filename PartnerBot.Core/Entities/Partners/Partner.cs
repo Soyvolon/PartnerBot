@@ -2,6 +2,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
+using DSharpPlus.Entities;
+
 namespace PartnerBot.Core.Entities
 {
     public class Partner
@@ -18,12 +20,14 @@ namespace PartnerBot.Core.Entities
         public string Banner { get; set; } = "";
         [NotMapped]
         private HashSet<string>? _tagSet { get; set; } = null;
-        public string TagString { get; protected set; }
+        public string TagString { get; protected set; } = "";
         public string Invite { get; set; } = "";
         public bool NSFW { get; set; } = false;
         public bool ReceiveNSFW { get; set; } = false;
         public string WebhookToken { get; internal set; } = "";
         public int UserCount { get; internal set; } = -1;
+        public int LinksUsed { get; set; } = 0;
+        public List<DiscordEmbedBuilder> MessageEmbeds { get; set; } = new();
 
         public Partner() { }
 

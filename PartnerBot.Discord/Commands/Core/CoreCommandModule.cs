@@ -202,13 +202,13 @@ namespace PartnerBot.Discord.Commands.Core
             return (true, null);
         }
 
-        protected async Task<(string?, string?, bool)> GetNewPartnerMessage(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
+        protected async Task<(string?, string?, bool)> GetNewMessage(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
         {
             var interact = Context.Client.GetInteractivity();
 
             await statusMessage.ModifyAsync(statusEmbed
                 .WithTitle("Partner Bot Setup - Message")
-                .WithDescription("Welcome to the Partner Message setter. Please enter your new partner message.")
+                .WithDescription("Welcome to the message setter. Please enter your new message.")
                 .WithColor(DiscordColor.Aquamarine)
                 .Build());
 
@@ -241,7 +241,7 @@ namespace PartnerBot.Discord.Commands.Core
                     {
                         await statusMessage.ModifyAsync(statusEmbed
                             .WithColor(DiscordColor.DarkRed)
-                            .WithDescription("A Partner Message cannot be empty! Please input a valid partner message before saving.")
+                            .WithDescription("A message cannot be empty! Please input a valid message before saving.")
                             .Build());
 
                         continue;
@@ -253,10 +253,9 @@ namespace PartnerBot.Discord.Commands.Core
 
                 var links = msg.GetUrls();
 
-                int c = 0;
                 foreach (var l in links)
                 {
-                    if (c >= p.DonorRank)
+                    if (p.LinksUsed >= p.DonorRank)
                     {
                         msg = msg.Remove(msg.IndexOf(l), l.Length);
                     }
@@ -266,13 +265,17 @@ namespace PartnerBot.Discord.Commands.Core
                         {
                             msg = msg.Remove(msg.IndexOf(l), l.Length);
                         }
+                        else
+                        {
+                            p.LinksUsed++;
+                        }
                     }
                 }
 
                 await statusMessage.ModifyAsync(statusEmbed
                     .WithColor(DiscordColor.Aquamarine)
-                    .WithDescription("This is your partner message, an invite will be added automatically when it is sent." +
-                    " Is this how you would like your message to look? If yes, type `save`, otherwise enter a new Partner Message.")
+                    .WithDescription("This is your message, an invite will be added automatically when it is sent." +
+                    " Is this how you would like your message to look? If yes, type `save`, otherwise enter a new message.")
                     .Build());
 
                 pMessage = await Context.RespondAsync(msg);
@@ -375,11 +378,444 @@ namespace PartnerBot.Discord.Commands.Core
             return (bannerUrl, null, false);
         }
 
-        protected async Task<(DiscordEmbedBuilder?, string?, bool)> GetCustomDiscordEmbedAsync(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
+        protected async Task<(DiscordEmbedBuilder?, string?, bool)> GetCustomDiscordEmbedAsync(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed,
+            string title, DiscordEmbedBuilder? toEdit = null)
         {
             var interact = Context.Client.GetInteractivity();
 
-            throw new NotImplementedException();
+            await statusMessage.ModifyAsync(statusEmbed
+                .WithTitle("Partner Bot Setup - Custom Embed")
+                .WithDescription("Welcome to the custom embed builder. Please select what modifications you want to make:")
+                .AddField("Edtior Options", "`add-field`, `remove-field`, `edit-field`, `edit-desc`, `edit-title`, `edit-color`, `edit-image`," +
+                " `save` (saves any changes and exits this editor)")
+                .WithColor(DiscordColor.Gold)
+                .Build());
+
+            DiscordEmbedBuilder displayEmbed;
+            if (toEdit is not null)
+                displayEmbed = toEdit;
+            else
+                displayEmbed = new DiscordEmbedBuilder()
+                    .WithTitle(title);
+
+            var displayMessage = await Context.RespondAsync(displayEmbed);
+
+            bool first = false;
+            do
+            {
+                bool invalidSelection = false;
+
+                var response = await GetFollowupMessageAsync(interact);
+
+                if (!response.Item2) return (null, null, true);
+
+                var res = response.Item1;
+
+                var trimed = res.Result.Content.ToLower().Trim();
+
+                if (trimed.Equals("exit"))
+                {
+                    await RespondError("Aborting...");
+                    return (null, null, true);
+                }
+                else if (!first && trimed.Equals("save"))
+                {
+                    break;
+                }
+
+                switch(trimed)
+                {
+                    case "add-field":
+                        if (!await AddCustomEmbedField(p, interact, statusMessage, statusEmbed, displayMessage, displayEmbed))
+                            return (null, null, true);
+                        break;
+                    case "remove-field":
+                        if (!await RemoveCustomEmbedField(p, interact, statusMessage, statusEmbed, displayMessage, displayEmbed))
+                            return (null, null, true);
+                        break;
+                    case "edit-field":
+                        if (!await EditCustomEmbedField(p, interact, statusMessage, statusEmbed, displayMessage, displayEmbed))
+                            return (null, null, true);
+                        break;
+                    case "edit-desc":
+                        var newDesc = await GetNewMessage(p, statusMessage, statusEmbed);
+                        if (newDesc.Item3) return (null, null, true);
+                        if (newDesc.Item1 is null) return (null, newDesc.Item2, newDesc.Item3);
+
+                        await displayMessage.ModifyAsync(displayEmbed
+                            .WithDescription(newDesc.Item1)
+                            .Build());
+                        break;
+                    case "edit-title":
+                        var newTitle = await GetFieldTitle(interact, statusMessage, statusEmbed);
+                        if (newTitle is null) return (null, null, true);
+
+                        await displayMessage.ModifyAsync(displayEmbed
+                            .WithTitle(newTitle)
+                            .Build());
+                        break;
+                    case "edit-color":
+                        var newColor = await GetCustomEmbedColorAsync(p, statusMessage, statusEmbed);
+                        if (newColor.Item3) return (null, null, true);
+                        if (newColor.Item1 is null) return (null, newColor.Item2, newColor.Item3);
+
+                        await displayMessage.ModifyAsync(displayEmbed
+                            .WithColor(newColor.Item1.Value)
+                            .Build());
+                        break;
+                    case "edit-image":
+                        var newBanner = await GetNewPartnerBanner(statusMessage, statusEmbed);
+                        if (newBanner.Item3) return (null, null, true);
+                        if (newBanner.Item1 is null) return (null, newBanner.Item2, newBanner.Item3);
+
+                        await displayMessage.ModifyAsync(displayEmbed
+                            .WithImageUrl(newBanner.Item1)
+                            .Build());
+                        break;
+                    default:
+                        invalidSelection = true;
+                        await statusMessage.ModifyAsync(statusEmbed
+                            .WithDescription("**Invalid selection**. Please make sure to select an item that is listed below:")
+                            .WithColor(DiscordColor.DarkRed)
+                            .Build());
+                        break;
+                }
+
+                if(!invalidSelection)
+                    await statusMessage.ModifyAsync(statusEmbed
+                        .WithDescription("Welcome to the custom embed builder. Please select what modifications you want to make:")
+                        .WithColor(DiscordColor.Gold)
+                        .Build());
+            } while (true);
+
+            statusEmbed.RemoveFieldAt(0);
+
+            await displayMessage.DeleteAsync();
+
+            return (displayEmbed, null, false);
+        }
+
+        private async Task<bool> AddCustomEmbedField(Partner p, InteractivityExtension interact,
+            DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed,
+            DiscordMessage displayMessage, DiscordEmbedBuilder displayEmbed)
+        {
+            await statusMessage.ModifyAsync(statusEmbed
+                .WithDescription("Enter the title for this field: ")
+                .WithColor(DiscordColor.Gold)
+                .Build());
+
+            string? title = await GetFieldTitle(interact, statusMessage, statusEmbed);
+
+            if (title is null) return false;
+
+            var pmsgResult = await GetNewMessage(p, statusMessage, statusEmbed);
+
+            if (pmsgResult.Item3) return false;
+            if(pmsgResult.Item1 is null)
+            {
+                await statusMessage.ModifyAsync(statusEmbed
+                    .WithDescription(pmsgResult.Item2)
+                    .Build());
+                return false;
+            }
+
+            string desc = pmsgResult.Item1;
+
+            var currentField = displayEmbed.Fields.Count;
+            await displayMessage.ModifyAsync(displayEmbed
+                .AddField(title, desc)
+                .Build());
+
+            await statusMessage.ModifyAsync(statusEmbed
+                .WithDescription("Should this field be inline? `yes`/`no`")
+                .WithColor(DiscordColor.Gold)
+                .Build());
+
+            bool inline = false;
+            bool valid = false;
+            do
+            {
+                var response = await GetFollowupMessageAsync(interact);
+
+                if (!response.Item2) return false;
+
+                var res = response.Item1;
+
+                var msg = res.Result.Content.Trim().ToLower();
+
+                if(msg.Equals("yes") || msg.Equals("y"))
+                {
+                    valid = true;
+                    inline = true;
+                }
+                else if(msg.Equals("no") || msg.Equals("n"))
+                {
+                    valid = true;
+                }
+                else
+                {
+                    await statusMessage.ModifyAsync(statusEmbed
+                        .WithDescription("Should this field be inline? **Please enter either** `yes` or `no`**")
+                        .WithColor(DiscordColor.DarkRed)
+                        .Build());
+                }
+            } while (!valid);
+
+            statusEmbed.Fields[currentField].Inline = inline;
+
+            await statusMessage.ModifyAsync(statusEmbed.Build());
+
+            return true;
+        }
+
+        private async Task<string?> GetFieldTitle(InteractivityExtension interact, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
+        {
+            bool valid = false;
+            string title = "";
+            do
+            {
+                var response = await GetFollowupMessageAsync(interact);
+
+                if (!response.Item2) return null;
+
+                var res = response.Item1;
+
+                if (string.IsNullOrWhiteSpace(res.Result.Content))
+                {
+                    await statusMessage.ModifyAsync(statusEmbed
+                        .WithDescription("A field title cannot be blank or white space.")
+                        .WithColor(DiscordColor.DarkRed)
+                        .Build());
+                }
+                else if (res.Result.Content.GetUrls().Count > 0)
+                {
+                    await statusMessage.ModifyAsync(statusEmbed
+                        .WithDescription("A field title cannot contain a link.")
+                        .WithColor(DiscordColor.DarkRed)
+                        .Build());
+                }
+                else
+                {
+                    valid = true;
+                    title = res.Result.Content;
+                }
+            } while (!valid);
+
+            return title;
+        }
+
+        private async Task<bool> EditCustomEmbedField(Partner p, InteractivityExtension interact,
+            DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed,
+            DiscordMessage displayMessage, DiscordEmbedBuilder displayEmbed)
+        {
+            if (displayEmbed.Fields.Count <= 0)
+            {
+                await statusMessage.ModifyAsync(statusEmbed
+                    .WithDescription("There are no fields to edit.")
+                    .WithColor(DiscordColor.DarkRed)
+                    .Build());
+
+                await Task.Delay(TimeSpan.FromSeconds(2));
+
+                return true;
+            }
+
+            int fields = displayEmbed.Fields.Count;
+
+            string desc = $"Please enter a value `1`-`{fields}` to edit:\n\n";
+            List<string> items = new();
+            int c = 1;
+            foreach (var f in displayEmbed.Fields)
+                items.Add($"`{c++}` - {f.Name}");
+
+            await statusMessage.ModifyAsync(statusEmbed
+                .WithDescription($"{desc}{string.Join("\n", items)}")
+                .WithColor(DiscordColor.Gold)
+                .Build());
+
+            int field = 0;
+            bool valid = false;
+            do
+            {
+                var response = await GetFollowupMessageAsync(interact);
+
+                if (!response.Item2) return false;
+
+                var res = response.Item1;
+
+                var msg = res.Result.Content.Trim().ToLower();
+
+                if (int.TryParse(msg, out var num))
+                {
+                    if (num > 0 && num <= fields)
+                    {
+                        field = num - 1;
+                        valid = true;
+                    }
+                    else
+                    {
+                        await statusMessage.ModifyAsync(statusEmbed
+                            .WithDescription($"The number entered must be between `1` and `{fields}`")
+                            .WithColor(DiscordColor.DarkRed)
+                            .Build());
+                    }
+                }
+                else
+                {
+                    await statusMessage.ModifyAsync(statusEmbed
+                        .WithDescription($"The value must be a number between `1` and `{fields}`")
+                        .WithColor(DiscordColor.DarkRed)
+                        .Build());
+                }
+            } while (!valid);
+
+            await statusMessage.ModifyAsync(statusEmbed
+                .WithDescription($"Please select which field edit you would like to do:\n" +
+                $"`title`, `message`, `inline`. Or, enter `save` to save any changes.")
+                .WithColor(DiscordColor.Gold)
+                .Build());
+
+            bool first = false;
+            string? newDesc = null;
+            string? newTitle = null;
+            bool invertInline = false;
+            do
+            {
+                var response = await GetFollowupMessageAsync(interact);
+
+                if (!response.Item2) return false;
+
+                var res = response.Item1;
+
+                var trimed = res.Result.Content.ToLower().Trim();
+
+                if (trimed.Equals("exit"))
+                {
+                    await RespondError("Aborting field editor...");
+                    return true;
+                }
+                else if (!first && trimed.Equals("save"))
+                {
+                    break;
+                }
+
+                switch (trimed)
+                {
+                    case "title":
+                        newTitle = await GetFieldTitle(interact, statusMessage, statusEmbed);
+                        break;
+                    case "message":
+                        var descRes = await GetNewMessage(p, statusMessage, statusEmbed);
+
+                        if (descRes.Item3) return false;
+
+                        newDesc = descRes.Item1;
+                        break;
+                    case "inline":
+                    case "toggle-inline":
+                        invertInline = !invertInline;
+                        break;
+                    default:
+                        await statusMessage.ModifyAsync(statusEmbed
+                            .WithDescription($"**Unkown options was selected.** Please select which field edit you would like to do:\n" +
+                                $"`title`, `message`, `inline`. Or, enter `save` to save any changes.")
+                            .WithColor(DiscordColor.DarkRed)
+                            .Build());
+                        break;
+                }
+
+                await statusMessage.ModifyAsync(statusEmbed
+                    .WithDescription("Welcome to the custom embed builder. Please select what modifications you want to make:")
+                    .WithColor(DiscordColor.Gold)
+                    .Build());
+            } while (true);
+
+            if (newDesc is not null)
+                displayEmbed.Fields[field].Value = newDesc;
+            if (newTitle is not null)
+                displayEmbed.Fields[field].Value = newTitle;
+            if (invertInline)
+                displayEmbed.Fields[field].Inline = !displayEmbed.Fields[field].Inline;
+
+            await displayMessage.ModifyAsync(displayEmbed.Build());
+
+            return true;
+        }
+
+        private async Task<bool> RemoveCustomEmbedField(Partner p, InteractivityExtension interact, 
+            DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed,
+            DiscordMessage displayMessage, DiscordEmbedBuilder displayEmbed)
+        {
+            if (displayEmbed.Fields.Count <= 0)
+            {
+                await statusMessage.ModifyAsync(statusEmbed
+                    .WithDescription("There are no fields to remove.")
+                    .WithColor(DiscordColor.DarkRed)
+                    .Build());
+
+                await Task.Delay(TimeSpan.FromSeconds(2));
+
+                return true;
+            }
+
+            int fields = displayEmbed.Fields.Count;
+
+            string desc = $"Please enter a value `1`-`{fields}` to delete:\n\n";
+            List<string> items = new();
+            int c = 1;
+            foreach(var f in displayEmbed.Fields)
+                items.Add($"`{c++}` - {f.Name}");
+
+            await statusMessage.ModifyAsync(statusEmbed
+                .WithDescription($"{desc}{string.Join("\n", items)}")
+                .WithColor(DiscordColor.Gold)
+                .Build());
+
+            int field = 0;
+            bool valid = false;
+            do
+            {
+                var response = await GetFollowupMessageAsync(interact);
+
+                if (!response.Item2) return false;
+
+                var res = response.Item1;
+
+                var msg = res.Result.Content.Trim().ToLower();
+
+                if(int.TryParse(msg, out var num))
+                {
+                    if(num > 0 && num <= fields)
+                    {
+                        field = num - 1;
+                        valid = true;
+                    }
+                    else
+                    {
+                        await statusMessage.ModifyAsync(statusEmbed
+                            .WithDescription($"The number entered must be between `1` and `{fields}`")
+                            .WithColor(DiscordColor.DarkRed)
+                            .Build());
+                    }
+                }
+                else
+                {
+                    await statusMessage.ModifyAsync(statusEmbed
+                        .WithDescription($"The value must be a number between `1` and `{fields}`")
+                        .WithColor(DiscordColor.DarkRed)
+                        .Build());
+                }
+            } while (!valid);
+
+            var str = displayEmbed.Fields[field].Value;
+
+            p.LinksUsed -= str.GetUrls().Count;
+
+            await displayMessage.ModifyAsync(displayEmbed
+                .RemoveFieldAt(field)
+                .Build());
+
+            return true;
         }
 
         protected async Task<(DiscordColor?, string?, bool)> GetCustomEmbedColorAsync(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
