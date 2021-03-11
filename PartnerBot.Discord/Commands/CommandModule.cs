@@ -10,11 +10,19 @@ namespace PartnerBot.Discord.Commands
         public static readonly DiscordColor Color_PartnerBotMagenta = new(0xe91e63);
 
         protected CommandContext Context { get; private set; }
+        protected DiscordEmoji Lock { get; private set; }
+        protected DiscordEmoji Check { get; private set; }
+        protected DiscordEmoji Cross { get; private set; }
 
         public override Task BeforeExecutionAsync(CommandContext ctx)
         {
             this.Context = ctx;
             base.BeforeExecutionAsync(ctx);
+
+            Lock = DiscordEmoji.FromName(ctx.Client, ":lock:");
+            Check = DiscordEmoji.FromName(ctx.Client, ":white_check_mark:");
+            Cross = DiscordEmoji.FromName(ctx.Client, ":x:");
+
             return Task.CompletedTask;
         }
 

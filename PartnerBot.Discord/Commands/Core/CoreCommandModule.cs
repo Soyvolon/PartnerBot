@@ -10,6 +10,7 @@ using DSharpPlus.Exceptions;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 
+using PartnerBot.Core.Database;
 using PartnerBot.Core.Entities;
 using PartnerBot.Core.Services;
 using PartnerBot.Core.Utils;
@@ -51,6 +52,7 @@ namespace PartnerBot.Discord.Commands.Core
             return (res, true);
         }
 
+        // TODO: Update get new partner channel to check for the ability to create/move(?) webhooks.
         protected async Task<(DiscordChannel?, string?, bool)> GetNewPartnerChannelAsync(DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
         {
             var interact = Context.Client.GetInteractivity();

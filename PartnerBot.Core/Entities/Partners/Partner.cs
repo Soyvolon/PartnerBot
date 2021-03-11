@@ -25,7 +25,7 @@ namespace PartnerBot.Core.Entities
         public bool NSFW { get; set; } = false;
         public bool ReceiveNSFW { get; set; } = false;
         public string WebhookToken { get; internal set; } = "";
-        public int UserCount { get; internal set; } = -1;
+        public int UserCount { get; set; } = -1;
         public int LinksUsed { get; set; } = 0;
         public List<DiscordEmbedBuilder> MessageEmbeds { get; set; } = new();
 
