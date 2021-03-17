@@ -64,25 +64,18 @@ namespace PartnerBot.Core.Services
             return (partner, string.Empty);
         }
 
-        public async Task<(bool, string)> UpdateWebhookValueAsync(ulong guildId, ulong newChannelId)
-        {
-            var partner = await _database.FindAsync<Partner>(guildId);
-
-            if (partner is null) return (false, "No partner found for that ID");
-
-            var hook = await _rest.GetWebhookAsync(partner.WebhookId);
-            await hook.ModifyAsync(channelId: newChannelId, reason: "Partner Bot Sender Webhook Update");
-
-            return (true, string.Empty);
-        }
-
-        public async Task<(Partner?, string)> UpdatePartnerAsync(ulong guildId, Func<PartnerUpdater> update)
+        public async Task<(bool, string)> UpdateOrAddPartnerAsync(ulong guildId, Func<PartnerUpdater> update)
         {
             var data = update.Invoke();
 
             var p = await _database.FindAsync<Partner>(guildId);
 
-            if (p is null) return (null, "No partner found for that ID");
+            if (p is null)
+            {
+                p = new();
+                await _database.AddAsync(p);
+                await _database.SaveChangesAsync();
+            }
 
             if (data.OwnerId is not null)
                 p.OwnerId = data.OwnerId.Value;
@@ -108,60 +101,59 @@ namespace PartnerBot.Core.Services
             if (data.ReceiveNSFW is not null)
                 p.ReceiveNSFW = data.ReceiveNSFW.Value;
 
-            await _database.SaveChangesAsync();
+            if (data.UserCount is not null)
+                p.UserCount = data.UserCount.Value;
+
+            if (data.LinksUsed is not null)
+                p.LinksUsed = data.LinksUsed.Value;
+
+            if (data.BaseColor is not null)
+                p.BaseColor = data.BaseColor.Value;
+
+            if (data.MessageEmbeds is not null)
+                p.MessageEmbeds = data.MessageEmbeds;
 
             if (data.Active is not null)
             {
-                if (data.Active.Value)
+                if (data.Active.Value != p.Active)
                 {
-                    var res = await EnablePartnerAsync(p.GuildId);
-                    if (!res.Item1)
-                        return (null, res.Item2);
-                }
-                else
-                {
-                    var res = await DisablePartnerAsync(p.GuildId);
-                    if (!res.Item1)
-                        return (null, res.Item2);
+                    if (data.Active.Value)
+                    {
+                        _channelVerification.AddPartner(p);
+                        p.Active = true;
+                    }
+                    else
+                    {
+                        _channelVerification.RemovePartner(p);
+                        p.Active = false;
+                    }
                 }
             }
 
-            if(data.ChannelId is not null)
+            if (data.ChannelId is not null)
             {
-                await UpdateWebhookValueAsync(guildId, data.ChannelId.Value);
+
+
+                try
+                {
+                    var hook = await _rest.GetWebhookAsync(p.WebhookId);
+                    await hook.ModifyAsync(channelId: data.ChannelId.Value, reason: "Partner Bot Sender Webhook Update");
+                }
+                catch (Exception ex)
+                {
+                    return (false, ex.Message);
+                }
             }
 
-            return (p, string.Empty);
-        }
-
-        internal async Task<(bool, string)> DisablePartnerAsync(ulong guildId)
-        {
-            var partner = await _database.FindAsync<Partner>(guildId);
-
-            if (partner is null) return (false, "No partner by that ID found");
-
-            partner.Active = false;
+            _database.Update(p);
             await _database.SaveChangesAsync();
-
-            // Run internal setups to deactivate a partner.
-            _channelVerification.RemovePartner(partner);
 
             return (true, string.Empty);
         }
 
-        internal async Task<(bool, string)> EnablePartnerAsync(ulong guildId)
+        public static async Task<(ulong, string)?> RegisterNewWebhook(ulong channelId)
         {
-            var partner = await _database.FindAsync<Partner>(guildId);
-
-            if (partner is null) return (false, "No partner by that ID found");
-
-            partner.Active = true;
-            await _database.SaveChangesAsync();
-
-            // Run internal setps to activate a partner.
-            _channelVerification.AddPartner(partner);
-
-            return (true, string.Empty);
+            throw new NotImplementedException();
         }
     }
 }

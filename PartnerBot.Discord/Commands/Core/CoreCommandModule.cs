@@ -203,7 +203,7 @@ namespace PartnerBot.Discord.Commands.Core
 
             return (true, null);
         }
-
+        // TODO: Check for message size limits that leave space for the invite link.
         protected async Task<(string?, string?, bool)> GetNewMessage(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
         {
             var interact = Context.Client.GetInteractivity();
@@ -380,6 +380,8 @@ namespace PartnerBot.Discord.Commands.Core
             return (bannerUrl, null, false);
         }
 
+        // TODO: Verify embed is not over limits
+        // https://discord.com/developers/docs/resources/channel#embed-object
         protected async Task<(DiscordEmbedBuilder?, string?, bool)> GetCustomDiscordEmbedAsync(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed,
             string title, DiscordEmbedBuilder? toEdit = null)
         {

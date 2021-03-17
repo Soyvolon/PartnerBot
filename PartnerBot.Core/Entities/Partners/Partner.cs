@@ -27,6 +27,7 @@ namespace PartnerBot.Core.Entities
         public string WebhookToken { get; internal set; } = "";
         public int UserCount { get; set; } = -1;
         public int LinksUsed { get; set; } = 0;
+        public DiscordColor BaseColor { get; set; } = DiscordColor.Gray;
         public List<DiscordEmbedBuilder> MessageEmbeds { get; set; } = new();
 
         public Partner() { }

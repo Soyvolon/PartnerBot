@@ -12,6 +12,8 @@ namespace PartnerBot.Core.Services
 {
     public class DonorService
     {
+        public static readonly int MAX_EMBEDS = 4;
+
         public async Task<int> GetDonorRank(Partner partner)
         {
             throw new NotImplementedException();
