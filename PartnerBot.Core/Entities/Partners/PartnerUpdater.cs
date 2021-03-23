@@ -11,7 +11,8 @@ namespace PartnerBot.Core.Entities
         public bool? Active { get; set; } = null;
         public int? DonorRank { get; set; } = null;
         public string? Banner { get; set; } = null;
-        public HashSet<string>? Tags { get; set; } = null;
+        public HashSet<string> TagsToAdd { get; set; } = new();
+        public HashSet<string> TagsToRemove { get; set; } = new();
         public string? Invite { get; set; } = null;
         public bool? NSFW { get; set; } = null;
         public bool? ReceiveNSFW { get; set; } = null;
@@ -31,7 +32,7 @@ namespace PartnerBot.Core.Entities
                 Active = p.Active,
                 DonorRank = p.DonorRank,
                 Banner = p.Banner,
-                Tags = p.GetTags(),
+                TagsToAdd = p.Tags,
                 Invite = p.Invite,
                 NSFW = p.NSFW,
                 ReceiveNSFW = p.ReceiveNSFW,

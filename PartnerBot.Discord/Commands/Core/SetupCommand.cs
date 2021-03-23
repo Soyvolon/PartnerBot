@@ -74,11 +74,14 @@ namespace PartnerBot.Discord.Commands.Core
             await db.SaveChangesAsync();
 
             DiscordChannel? channel = null;
+            ulong oldChannelId = 0;
+            DiscordWebhook? hook = null;
 
             if(!string.IsNullOrWhiteSpace(partner.WebhookToken))
             {
-                var hook = await ctx.Client.GetWebhookAsync(partner.WebhookId);
+                hook = await ctx.Client.GetWebhookAsync(partner.WebhookId);
                 channel = await ctx.Client.GetChannelAsync(hook.ChannelId);
+                oldChannelId = channel.Id;
             }
 
             var statusEmbed = new DiscordEmbedBuilder(SetupBase);
@@ -415,7 +418,7 @@ namespace PartnerBot.Discord.Commands.Core
 
             await requirementsMessage.DeleteAsync();
 
-            await _partners.UpdateOrAddPartnerAsync(ctx.Guild.Id, () =>
+            var updateRes = await _partners.UpdateOrAddPartnerAsync(ctx.Guild.Id, () =>
             {
                 var update = PartnerUpdater.BuildFromPartner(partner);
                 
@@ -425,8 +428,18 @@ namespace PartnerBot.Discord.Commands.Core
                 return update;
             });
 
-            statusEmbed.WithDescription("Partner Setup Saved!")
-                .WithColor(DiscordColor.DarkGreen);
+            if (updateRes.Item1)
+            {
+                statusEmbed.WithDescription("Partner Setup Saved!")
+                    .WithColor(DiscordColor.DarkGreen);
+            }
+            else
+            {
+                statusEmbed.WithDescription("An error occoured while saving:\n\n```\n" +
+                    $"{updateRes.Item2}" +
+                    $"\n```")
+                    .WithColor(DiscordColor.DarkRed);
+            }
 
             await statusMessage.ModifyAsync(statusEmbed.Build());
         }

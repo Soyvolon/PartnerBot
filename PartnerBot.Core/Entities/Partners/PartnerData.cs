@@ -53,12 +53,12 @@ namespace PartnerBot.Core.Entities
                 "STRESS TEST\n\n" +
                 $"This Partner ({GuildName}):\n" +
                 $"ID: {GuildId}\n" +
-                $"Tags: {string.Join(", ", GetTags())}\n" +
+                $"Tags: {string.Join(", ", Tags)}\n" +
                 $"Size: {UserCount}\n" +
                 $"Donor Rank: {DonorRank}\n\n" +
                 $"Other Partner ({Match.GuildName}):\n" +
                 $"ID: {Match.GuildId}\n" +
-                $"Tags: {string.Join(", ", Match.GetTags())}\n" +
+                $"Tags: {string.Join(", ", Match.Tags)}\n" +
                 $"Size: {Match.UserCount}\n" +
                 $"Donor Rank: {Match.DonorRank}\n" +
                 $"Extra: {ExtraMessage}" +

@@ -2,6 +2,8 @@
 using System.Threading.Tasks;
 
 using DSharpPlus;
+using DSharpPlus.Entities;
+using DSharpPlus.Exceptions;
 
 using Microsoft.Extensions.Logging;
 
@@ -89,8 +91,11 @@ namespace PartnerBot.Core.Services
             if (data.Banner is not null)
                 p.Banner = data.Banner;
 
-            if (data.Tags is not null)
-                p.SetTags(data.Tags);
+            if (data.TagsToAdd is not null)
+                p.Tags.UnionWith(data.TagsToAdd);
+
+            if (data.TagsToRemove is not null)
+                p.Tags.ExceptWith(data.TagsToRemove);
 
             if (data.Invite is not null)
                 p.Invite = data.Invite;
@@ -132,16 +137,32 @@ namespace PartnerBot.Core.Services
 
             if (data.ChannelId is not null)
             {
-
-
-                try
+                if (p.WebhookId != data.ChannelId)
                 {
-                    var hook = await _rest.GetWebhookAsync(p.WebhookId);
+                    DiscordWebhook? hook = null;
+                    if (p.WebhookId == 0)
+                    {
+                        hook = await _rest.CreateWebhookAsync(data.ChannelId.Value, "Partner Bot Message Sender", reason: "Partner Bot Sender Webhook Update");
+                    }
+
+                    try
+                    {
+                        if (hook is null)
+                            hook = await _rest.GetWebhookAsync(p.WebhookId);
+                    }
+                    catch (NotFoundException)
+                    {
+                        hook = await _rest.CreateWebhookAsync(data.ChannelId.Value, "Partner Bot Message Sender", reason: "Partner Bot Sender Webhook Update");
+                    }
+                    catch (Exception ex)
+                    {
+                        return (false, ex.Message);
+                    }
+
                     await hook.ModifyAsync(channelId: data.ChannelId.Value, reason: "Partner Bot Sender Webhook Update");
-                }
-                catch (Exception ex)
-                {
-                    return (false, ex.Message);
+
+                    p.WebhookId = hook.Id;
+                    p.WebhookToken = hook.Token;
                 }
             }
 

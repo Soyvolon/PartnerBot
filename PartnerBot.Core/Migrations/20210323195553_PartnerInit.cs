@@ -2,7 +2,7 @@
 
 namespace PartnerBot.Core.Migrations
 {
-    public partial class Init : Migration
+    public partial class PartnerInit : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -33,12 +33,15 @@ namespace PartnerBot.Core.Migrations
                     Active = table.Column<bool>(type: "INTEGER", nullable: false),
                     DonorRank = table.Column<int>(type: "INTEGER", nullable: false),
                     Banner = table.Column<string>(type: "TEXT", nullable: false),
-                    TagString = table.Column<string>(type: "TEXT", nullable: false),
+                    Tags = table.Column<string>(type: "TEXT", nullable: false),
                     Invite = table.Column<string>(type: "TEXT", nullable: false),
                     NSFW = table.Column<bool>(type: "INTEGER", nullable: false),
                     ReceiveNSFW = table.Column<bool>(type: "INTEGER", nullable: false),
                     WebhookToken = table.Column<string>(type: "TEXT", nullable: false),
-                    UserCount = table.Column<int>(type: "INTEGER", nullable: false)
+                    UserCount = table.Column<int>(type: "INTEGER", nullable: false),
+                    LinksUsed = table.Column<int>(type: "INTEGER", nullable: false),
+                    BaseColor = table.Column<int>(type: "INTEGER", nullable: false),
+                    MessageEmbeds = table.Column<string>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {

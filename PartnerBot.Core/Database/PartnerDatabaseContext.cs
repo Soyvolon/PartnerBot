@@ -1,5 +1,11 @@
 ﻿
+using System.Collections.Generic;
+
+using DSharpPlus.Entities;
+
 using Microsoft.EntityFrameworkCore;
+
+using Newtonsoft.Json;
 
 using PartnerBot.Core.Entities;
 using PartnerBot.Core.Entities.Configuration;
@@ -18,7 +24,20 @@ namespace PartnerBot.Core.Database
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-
+            var partner = modelBuilder.Entity<Partner>();
+            partner.HasKey(x => x.GuildId);
+            partner.Property(x => x.BaseColor)
+                .HasConversion(
+                    v => v.Value,
+                    v => new(v));
+            partner.Property(x => x.MessageEmbeds)
+                .HasConversion( // use newtonsoft.json here because DSharpPlus uses it to define the embed.
+                    v => JsonConvert.SerializeObject(v),
+                    v => JsonConvert.DeserializeObject<List<DiscordEmbedBuilder>>(v) ?? new());
+            partner.Property(x => x.Tags)
+                .HasConversion(
+                    v => System.Text.Json.JsonSerializer.Serialize(v, null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<HashSet<string>>(v, null) ?? new());
 
             base.OnModelCreating(modelBuilder);
         }

@@ -8,8 +8,8 @@ using PartnerBot.Core.Database;
 namespace PartnerBot.Core.Migrations
 {
     [DbContext(typeof(PartnerDatabaseContext))]
-    [Migration("20210305161753_Init")]
-    partial class Init
+    [Migration("20210323195553_PartnerInit")]
+    partial class PartnerInit
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -45,6 +45,9 @@ namespace PartnerBot.Core.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("BaseColor")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("DonorRank")
                         .HasColumnType("INTEGER");
 
@@ -60,7 +63,14 @@ namespace PartnerBot.Core.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("LinksUsed")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("MessageEmbeds")
                         .IsRequired()
                         .HasColumnType("TEXT");
 
@@ -73,7 +83,7 @@ namespace PartnerBot.Core.Migrations
                     b.Property<bool>("ReceiveNSFW")
                         .HasColumnType("INTEGER");
 
-                    b.Property<string>("TagString")
+                    b.Property<string>("Tags")
                         .IsRequired()
                         .HasColumnType("TEXT");
 

@@ -79,6 +79,7 @@ namespace PartnerBot
                 .AddSingleton<CommandErrorHandlingService>()
                 .AddSingleton<CommandHandlingService>()
                 .AddSingleton<DiscordBot>()
+                .AddSingleton<DonorService>()
                 .AddSingleton(pcfg);
 
             IServiceProvider provider = services.BuildServiceProvider();

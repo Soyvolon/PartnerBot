@@ -248,8 +248,8 @@ namespace PartnerBot.Core.Services
 
                 float matchedTags = 0.0f;
                 // ... for every tag in the to match ...
-                var itemTags = item.GetTags();
-                var matchTags = toMatch.GetTags();
+                var itemTags = item.Tags;
+                var matchTags = toMatch.Tags;
                 foreach(var t in matchTags)
                 { // ... add one if there is a matching tag in the potential parter ...
                     if (itemTags.Contains(t))
@@ -304,7 +304,7 @@ namespace PartnerBot.Core.Services
                     UserCount = ThreadSafeRandom.Next(1, 10001)
                 };
 
-                p.SetTags(item.Tags);
+                p.Tags.UnionWith(item.Tags);
 
                 if (lastOwner != 0)
                 {
