@@ -53,14 +53,14 @@ namespace PartnerBot.Discord.Commands.Core
         }
 
         // TODO: Update get new partner channel to check for the ability to create/move(?) webhooks.
-        protected async Task<(DiscordChannel?, string?, bool)> GetNewPartnerChannelAsync(DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
+        protected async Task<((DiscordChannel, DiscordWebhook, string)?, string?, bool)> GetNewPartnerChannelAsync(Partner partner, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
         {
             var interact = Context.Client.GetInteractivity();
             var color = DiscordColor.Purple;
 
             await statusMessage.ModifyAsync(statusEmbed
                 .WithTitle("Partner Bot Setup - Channel")
-                .WithDescription("Please select a channel that you would like to receive partner messages in. THis channel will" +
+                .WithDescription("Please select a channel that you would like to receive partner messages in. This channel will" +
                 " receive any messages from other servers when your advertisment is sent out.\n\n" +
                 "The channel requires all overwrites in that channel have the following two permissions:" +
                 " `View Channel` and `Read Message History`")
@@ -180,7 +180,35 @@ namespace PartnerBot.Discord.Commands.Core
                 }
             } while (!valid);
 
-            return (c, null, false);
+            if (c is null) return (null, "Critical Error: Channel failed to propagate", false);
+
+            DiscordWebhook hook;
+            if(partner.WebhookId != 0)
+            {
+                hook = await Context.Client.GetWebhookAsync(partner.WebhookId);
+            }
+            else
+            {
+                hook = await c.CreateWebhookAsync("Partner Bot Message Sender", reason: "Partner Bot Sender Webhook Update");
+            }
+
+            if(hook.ChannelId != c.Id)
+            {
+                await hook.ModifyAsync(channelId: c.Id);
+            }
+
+            string invite;
+            if(string.IsNullOrWhiteSpace(partner.Invite))
+            {
+                var fullinvite = await c.CreateInviteAsync(0, 0, false, false, "Partner Bot Invite");
+                invite = fullinvite.Code;
+            }
+            else
+            {
+                invite = partner.Invite;
+            }
+
+            return ((c, hook, invite), null, false);
         }
 
         protected async Task<(bool, string?)> ConfigurePartnerChannelPermissions(List<DiscordOverwrite> invalid)
@@ -203,6 +231,7 @@ namespace PartnerBot.Discord.Commands.Core
 
             return (true, null);
         }
+
         // TODO: Check for message size limits that leave space for the invite link.
         protected async Task<(string?, string?, bool)> GetNewMessage(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
         {
@@ -340,7 +369,7 @@ namespace PartnerBot.Discord.Commands.Core
                 if (displayMsg is not null)
                     await displayMsg.DeleteAsync();
                 
-                if(res.Result.Attachments.Count >= 0)
+                if(res.Result.Attachments.Count > 0)
                 {
                     _ = Uri.TryCreate(res.Result.Attachments[0].Url, UriKind.Absolute, out bannerUrl);
                 }

@@ -52,7 +52,7 @@ namespace PartnerBot.Discord.Commands.Core
             // ... once setup is closed, save new data.
 
             var db = _services.GetRequiredService<PartnerDatabaseContext>();
-            var partner = await db.Partners.AsNoTracking().FirstAsync(x => x.GuildId == ctx.Guild.Id);
+            var partner = await db.Partners.AsNoTracking().FirstOrDefaultAsync(x => x.GuildId == ctx.Guild.Id);
 
             if(partner is null)
             {
@@ -124,6 +124,7 @@ namespace PartnerBot.Discord.Commands.Core
                 {
                     // Exit calls
                     case "exit":
+                        await RespondError("Aborting...");
                         return;
                     case "save":
                         done = true;
@@ -131,7 +132,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                     // Primary Settings
                     case "channel":
-                        var chanRes = await GetNewPartnerChannelAsync(statusMessage, statusEmbed);
+                        var chanRes = await GetNewPartnerChannelAsync(partner, statusMessage, statusEmbed);
                         if (chanRes.Item3) return;
 
                         if (chanRes.Item1 is null)
@@ -140,7 +141,10 @@ namespace PartnerBot.Discord.Commands.Core
                             return;
                         }
 
-                        channel = chanRes.Item1;
+                        channel = chanRes.Item1.Value.Item1;
+                        partner.WebhookId = chanRes.Item1.Value.Item2.Id;
+                        partner.WebhookToken = chanRes.Item1.Value.Item2.Token;
+                        partner.Invite = chanRes.Item1.Value.Item3;
                         break;
                     case "message":
                         var messageRes = await GetNewMessage(partner, statusMessage, statusEmbed);
@@ -161,7 +165,8 @@ namespace PartnerBot.Discord.Commands.Core
                             partner.Active = false;
                         else
                         {
-                            statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                            statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                .WithDescription($"{BASE_MESSAGE}\n\n" +
                                 $"**Core setup is not complete. Please complete the required settings before toggling Partner Bot**")
                                 .WithColor(DiscordColor.DarkRed);
 
@@ -181,7 +186,8 @@ namespace PartnerBot.Discord.Commands.Core
                         }
                         else if (partner.MessageEmbeds.Count <= 0)
                         {
-                            statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                            statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                .WithDescription($"{BASE_MESSAGE}\n\n" +
                                 $"**There are no embeds to edit!**")
                                 .WithColor(DiscordColor.DarkRed);
 
@@ -189,7 +195,8 @@ namespace PartnerBot.Discord.Commands.Core
                         }
                         else
                         {
-                            statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                            statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                .WithDescription($"{BASE_MESSAGE}\n\n" +
                                 $"**Please enter the title for your new embed:**")
                                 .WithColor(Color_PartnerBotMagenta);
 
@@ -205,7 +212,8 @@ namespace PartnerBot.Discord.Commands.Core
 
                             if (title.Length > 256)
                             {
-                                statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                                statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                    .WithDescription($"{BASE_MESSAGE}\n\n" +
                                     $"**The embed title cannot be longer than 256 characters. Returning to main menu.**")
                                     .WithColor(DiscordColor.DarkRed);
 
@@ -230,7 +238,8 @@ namespace PartnerBot.Discord.Commands.Core
                     case "edit-embed":
                         if (partner.DonorRank < 3)
                         {
-                            statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                            statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                .WithDescription($"{BASE_MESSAGE}\n\n" +
                                 $"**You need to be a Quadruple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**")
                                 .WithColor(DiscordColor.DarkRed);
 
@@ -238,7 +247,8 @@ namespace PartnerBot.Discord.Commands.Core
                         }
                         else if (partner.MessageEmbeds.Count < DonorService.MAX_EMBEDS)
                         {
-                            statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                            statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                .WithDescription($"{BASE_MESSAGE}\n\n" +
                                 $"**You have used up all your embeds! You can edit a exsisting one, or remove an old one and add a new one.**")
                                 .WithColor(DiscordColor.DarkRed);
 
@@ -251,7 +261,8 @@ namespace PartnerBot.Discord.Commands.Core
                             foreach (var e in partner.MessageEmbeds)
                                 dat.Add($"[{i++}] {e.Title}");
 
-                            statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                            statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                .WithDescription($"{BASE_MESSAGE}\n\n" +
                                 $"**Please enter the index of the emebed you would like to edit:**\n" +
                                 $"*[index] title*\n\n" +
                                 $"{string.Join("\n", dat)}")
@@ -269,7 +280,8 @@ namespace PartnerBot.Discord.Commands.Core
 
                             if (!int.TryParse(indexRaw, out int index))
                             {
-                                statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                                statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                    .WithDescription($"{BASE_MESSAGE}\n\n" +
                                     $"**The value provided was not a number! Returning to main menu.**")
                                     .WithColor(DiscordColor.DarkRed);
 
@@ -277,7 +289,8 @@ namespace PartnerBot.Discord.Commands.Core
                             }
                             else if (index > partner.MessageEmbeds.Count || index < 0)
                             {
-                                statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                                statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                    .WithDescription($"{BASE_MESSAGE}\n\n" +
                                     $"**The value provided was not a valid embed! Returning to main menu.**")
                                     .WithColor(DiscordColor.DarkRed);
 
@@ -304,7 +317,8 @@ namespace PartnerBot.Discord.Commands.Core
                     case "remove-embed":
                         if (partner.DonorRank < 3)
                         {
-                            statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                            statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                .WithDescription($"{BASE_MESSAGE}\n\n" +
                                 $"**You need to be a Quadruple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**")
                                 .WithColor(DiscordColor.DarkRed);
 
@@ -312,7 +326,8 @@ namespace PartnerBot.Discord.Commands.Core
                         }
                         else if (partner.MessageEmbeds.Count <= 0)
                         {
-                            statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                            statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                .WithDescription($"{BASE_MESSAGE}\n\n" +
                                 $"**There are no embeds to remove!**")
                                 .WithColor(DiscordColor.DarkRed);
 
@@ -322,7 +337,8 @@ namespace PartnerBot.Discord.Commands.Core
                         {
                             if (partner.DonorRank < 3)
                             {
-                                statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                                statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                    .WithDescription($"{BASE_MESSAGE}\n\n" +
                                     $"**You need to be a Quadruple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**")
                                     .WithColor(DiscordColor.DarkRed);
 
@@ -330,7 +346,8 @@ namespace PartnerBot.Discord.Commands.Core
                             }
                             else if (partner.MessageEmbeds.Count < DonorService.MAX_EMBEDS)
                             {
-                                statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                                statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                    .WithDescription($"{BASE_MESSAGE}\n\n" +
                                     $"**You have used up all your embeds! You can edit a exsisting one, or remove an old one and add a new one.**")
                                     .WithColor(DiscordColor.DarkRed);
 
@@ -343,7 +360,8 @@ namespace PartnerBot.Discord.Commands.Core
                                 foreach (var e in partner.MessageEmbeds)
                                     dat.Add($"[{i++}] {e.Title}");
 
-                                statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                                statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                    .WithDescription($"{BASE_MESSAGE}\n\n" +
                                     $"**Please enter the index of the emebed you would like to remove:**\n" +
                                     $"*[index] title*\n\n" +
                                     $"{string.Join("\n", dat)}")
@@ -361,7 +379,8 @@ namespace PartnerBot.Discord.Commands.Core
 
                                 if (!int.TryParse(indexRaw, out int index))
                                 {
-                                    statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                                    statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                        .WithDescription($"{BASE_MESSAGE}\n\n" +
                                         $"**The value provided was not a number! Returning to main menu.**")
                                         .WithColor(DiscordColor.DarkRed);
 
@@ -369,7 +388,8 @@ namespace PartnerBot.Discord.Commands.Core
                                 }
                                 else if (index > partner.MessageEmbeds.Count || index < 0)
                                 {
-                                    statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                                    statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                        .WithDescription($"{BASE_MESSAGE}\n\n" +
                                         $"**The value provided was not a valid embed! Returning to main menu.**")
                                         .WithColor(DiscordColor.DarkRed);
 
@@ -379,7 +399,8 @@ namespace PartnerBot.Discord.Commands.Core
                                 {
                                     partner.MessageEmbeds.RemoveAt(index);
 
-                                    statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
+                                    statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                        .WithDescription($"{BASE_MESSAGE}\n\n" +
                                         $"**Embed removed.**");
                                 }
                             }
@@ -430,12 +451,14 @@ namespace PartnerBot.Discord.Commands.Core
 
             if (updateRes.Item1)
             {
-                statusEmbed.WithDescription("Partner Setup Saved!")
+                statusEmbed.WithTitle("Partner Bot Setup - Main")
+                    .WithDescription("Partner Setup Saved!")
                     .WithColor(DiscordColor.DarkGreen);
             }
             else
             {
-                statusEmbed.WithDescription("An error occoured while saving:\n\n```\n" +
+                statusEmbed.WithTitle("Partner Bot Setup - Main")
+                    .WithDescription("An error occoured while saving:\n\n```\n" +
                     $"{updateRes.Item2}" +
                     $"\n```")
                     .WithColor(DiscordColor.DarkRed);
@@ -455,8 +478,9 @@ namespace PartnerBot.Discord.Commands.Core
             bool invalidBanner = string.IsNullOrWhiteSpace(partner.Banner);
             bool maxLinks = partner.LinksUsed >= 3;
             bool linkCap = partner.LinksUsed >= partner.DonorRank;
-            bool maxEmbeds = partner.MessageEmbeds.Count >= DonorService.MAX_EMBEDS;
+            bool embedsRemaining = partner.MessageEmbeds.Count < DonorService.MAX_EMBEDS;
             bool embedAllowed = partner.DonorRank >= 3;
+            bool defaultColor = partner.BaseColor.Value == DiscordColor.Gray.Value;
 
             var requirementsEmbed = new DiscordEmbedBuilder()
                 .WithColor(Color_PartnerBotMagenta)
@@ -464,24 +488,29 @@ namespace PartnerBot.Discord.Commands.Core
                 .AddField($"{(partner.Active ? Check.GetDiscordName() : Cross.GetDiscordName())} Active",
                     partner.Active ? "Partner Bot is **Active** on this server!" : "Partner Bot is **Inactive** on this server." +
                     " Complete the required options then `toggle` to activate Partner Bot!", false)
-                .AddField("**Required Settings**", "``` ```")
+                .AddField("_ _", "``` ```", false)
+                .AddField("**Required Settings**", "_ _")
                 .AddField($"{(validChannel ? Check.GetDiscordName() : Cross.GetDiscordName())} Channel",
                     validChannel ? $"The current channel ({channel?.Mention}) is valid! Change it with `channel`." : "Please set a valid Partner Channel with `channel`.", true)
                 .AddField($"{(invalidMessage ? Cross.GetDiscordName() : Check.GetDiscordName())} Message", 
                     invalidMessage ? "You have no message set! Set one with `message`." : "Your message is set. Change it with `message`.", true)
-                .AddField("**Optional Settings**", "``` ```", false)
-                .AddField($"{(invalidBanner ? Cross.GetDiscordName() : Check.GetDiscordName())}", 
+                .AddField("_ _", "``` ```", false)
+                .AddField("**Optional Settings**", "_ _", false)
+                .AddField($"{(invalidBanner ? Cross.GetDiscordName() : Check.GetDiscordName())} Banner", 
                     invalidBanner ? "You have no banner set! Set one with `banner`." : "You have a banner set! Change it with `banner`.", true)
                 .AddField($"{(linkCap ? (maxLinks ? Check.GetDiscordName() : Lock.GetDiscordName()) : Cross.GetDiscordName())} Links", 
                     linkCap ? 
                         (maxLinks ? "You have used all your links! Modify your message to change the links with `message`." 
                             : "You can't use any more links! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get more links.")
                         : $"You have used {partner.LinksUsed} of {partner.DonorRank} avalible links. Edit your message with `message` to use them!", true)
-                .AddField($"{(maxEmbeds ? (embedAllowed ? Cross.GetDiscordName() : Lock.GetDiscordName()) : Check.GetDiscordName())} Embeds", 
-                    maxEmbeds ?
+                .AddField($"{(embedsRemaining ? (embedAllowed ? Cross.GetDiscordName() : Lock.GetDiscordName()) : Check.GetDiscordName())} Embeds", 
+                    embedsRemaining ?
                         (embedAllowed ? $"You have used {partner.MessageEmbeds.Count} of 4 embeds. Use `add-embed` to add a new embed!"
                             : "You can't add any embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.")
-                        : "You have used all of your embeds! Consider editing or removing some to update your message with `edit-embed` or `remove-embed`!", true);
+                        : "You have used all of your embeds! Consider editing or removing some to update your message with `edit-embed` or `remove-embed`!", true)
+                .AddField($"{(defaultColor ? Cross.GetDiscordName() : Check.GetDiscordName())} Color",
+                    defaultColor ? "You have no custom color set! Set one with `color`."
+                        : $"You have your custom color set to `R{partner.BaseColor.R}, G{partner.BaseColor.G}, B{partner.BaseColor.B}`! Change it with `color`.", true);
             
             return requirementsEmbed;
         }

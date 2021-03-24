@@ -38,7 +38,7 @@ namespace PartnerBot.Core.Entities
                 ReceiveNSFW = p.ReceiveNSFW,
                 WebhookToken = p.WebhookToken,
                 UserCount = p.UserCount,
-                LinksUsed = p.UserCount,
+                LinksUsed = p.LinksUsed,
                 BaseColor = p.BaseColor,
                 MessageEmbeds = p.MessageEmbeds
             };

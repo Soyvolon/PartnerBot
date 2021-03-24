@@ -21,7 +21,7 @@ namespace PartnerBot.Core.Entities
         public string Invite { get; set; } = "";
         public bool NSFW { get; set; } = false;
         public bool ReceiveNSFW { get; set; } = false;
-        public string WebhookToken { get; internal set; } = "";
+        public string WebhookToken { get; set; } = "";
         public int UserCount { get; set; } = -1;
         public int LinksUsed { get; set; } = 0;
         public DiscordColor BaseColor { get; set; } = DiscordColor.Gray;

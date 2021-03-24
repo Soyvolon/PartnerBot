@@ -18,7 +18,7 @@ namespace PartnerBot.Discord.Commands.Conditions
 
         public RequireCessumOwnerAttribute()
         {
-            _pcfg = DiscordBot.PbCfg ?? new("", "pb!", new(), new(), 0);
+            _pcfg = DiscordBot.PbCfg ?? new("", "pb!", new(), new(), 0, new());
         }
 
         public override Task<bool> ExecuteCheckAsync(CommandContext ctx, bool help)

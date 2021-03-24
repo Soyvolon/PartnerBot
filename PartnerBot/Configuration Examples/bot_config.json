@@ -3,5 +3,15 @@
   "prefix": "pb!",
   "owners": [ 1234, 4321 ],
   "staff_roles": [ 1234, 4321 ],
-  "home_guild":  1234
+  "home_guild": 1234,
+  "donor_roles": [
+    {
+      "role_id": 1234,
+      "weight": 1
+    },
+    {
+      "role_id": 4321,
+      "weight": 3
+    }
+  ]
 }
