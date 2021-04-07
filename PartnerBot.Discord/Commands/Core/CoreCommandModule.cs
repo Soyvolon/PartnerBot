@@ -103,39 +103,9 @@ namespace PartnerBot.Discord.Commands.Core
                         string desc = "**Invalid Channel Setup.**\n" +
                             $"Some overwrites are missing the `View Channel` or `Read Message History` for {mentioned.Mention}";
 
-                        List<string> data = new();
-                        List<DiscordOverwrite> invalid = new();
-
-                        foreach(var o in mentioned.PermissionOverwrites)
-                        {
-                            bool access = o.Allowed.HasPermission(Permissions.AccessChannels);
-                            bool read = o.Allowed.HasPermission(Permissions.ReadMessageHistory);
-
-                            if (access && read)
-                                continue;
-
-                            invalid.Add(o);
-
-                            string msg = "";
-
-                            if(o.Type == OverwriteType.Member)
-                            {
-                                var m = await o.GetMemberAsync();
-
-                                msg += $"**Invalid Member: {m.Mention}**\n";
-                            }
-                            else
-                            {
-                                var r = await o.GetRoleAsync();
-
-                                msg += $"**Invalid Role: {r.Mention}**\n";
-                            }
-
-                            msg += $"{(access ? ":white_check_mark:" : ":x:")} `View Channel`\n" +
-                                $"{(read ? ":white_check_mark:" : ":x:")} `Read Message History`";
-
-                            data.Add(msg);
-                        }
+                        var invalidRes = await GetInvalidChannelSetupDataString(mentioned);
+                        var data = invalidRes.Item1;
+                        var invalid = invalidRes.Item2;
 
                         desc += $"**Would you like Partner Bot to fix this channel for you? If so, type `yes`." +
                             $" Otherwise, type `no` to return to channel selection.**\n\n\n" +
@@ -209,6 +179,45 @@ namespace PartnerBot.Discord.Commands.Core
             }
 
             return ((c, hook, invite), null, false);
+        }
+
+        protected async Task<(List<string>, List<DiscordOverwrite>)> GetInvalidChannelSetupDataString(DiscordChannel channel)
+        {
+            List<string> data = new();
+            List<DiscordOverwrite> invalid = new();
+
+            foreach (var o in channel.PermissionOverwrites)
+            {
+                bool access = o.Allowed.HasPermission(Permissions.AccessChannels);
+                bool read = o.Allowed.HasPermission(Permissions.ReadMessageHistory);
+
+                if (access && read)
+                    continue;
+
+                invalid.Add(o);
+
+                string msg = "";
+
+                if (o.Type == OverwriteType.Member)
+                {
+                    var m = await o.GetMemberAsync();
+
+                    msg += $"**Invalid Member: {m.Mention}**\n";
+                }
+                else
+                {
+                    var r = await o.GetRoleAsync();
+
+                    msg += $"**Invalid Role: {r.Mention}**\n";
+                }
+
+                msg += $"{(access ? ":white_check_mark:" : ":x:")} `View Channel`\n" +
+                    $"{(read ? ":white_check_mark:" : ":x:")} `Read Message History`";
+
+                data.Add(msg);
+            }
+
+            return (data, invalid);
         }
 
         protected async Task<(bool, string?)> ConfigurePartnerChannelPermissions(List<DiscordOverwrite> invalid)
@@ -966,6 +975,110 @@ namespace PartnerBot.Discord.Commands.Core
             } while (!done);
 
             return (color, null, false);
+        }
+
+        protected const int TAG_LIMIT = 10;
+        protected async Task<(HashSet<string>?, string?, bool)> UpdateTagsAsync
+            (Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
+        {
+            var interact = Context.Client.GetInteractivity(); 
+
+            await statusMessage.ModifyAsync(statusEmbed
+                .WithColor(DiscordColor.Aquamarine)
+                .WithTitle("Partner Bot Setup - Tags")
+                .WithDescription("Welcome to the tag editor! Please select if you would like to `add` or `remove` tags, or `save` your current tag list:\n\n" +
+                "Options: `add`, `remove`, `save`, `exit`")
+                .Build());
+
+            bool save = false;
+            bool errored = false;
+            do
+            {
+                var followup = await GetFollowupMessageAsync(interact);
+
+                if (!followup.Item2) return (null, null, true);
+
+                var res = followup.Item1;
+
+                var msg = res.Result.Content.Trim().ToLower();
+
+                switch(msg)
+                {
+                    case "exit":
+                        await RespondError("Setup cancled");
+                        return (null, null, true);
+
+                    case "save":
+                        save = true;
+                        break;
+
+                    case "add":
+
+                        await statusMessage.ModifyAsync(statusEmbed
+                            .WithDescription("**Adding Tags**:\n\n" +
+                            "Please enter the tags you would wish to add. Tags are one word, and multiple tags can be separated by spaces.\n\n" +
+                            "**You can have no more than 10 tags.**\n\n" +
+                            $"Current Tags: `{string.Join("`, `", p.Tags)}`")
+                            .Build());
+
+                        var addFollowup = await GetFollowupMessageAsync(interact);
+
+                        if (!addFollowup.Item2) return (null, null, true);
+
+                        var addRes = addFollowup.Item1;
+
+                        var addTags = addRes.Result.Content.Trim().ToLower().Split(" ", StringSplitOptions.RemoveEmptyEntries);
+
+                        if (p.Tags.Count + addTags.Length > TAG_LIMIT)
+                        {
+                            await statusMessage.ModifyAsync(statusEmbed
+                                .WithDescription("The ammount of tags added place your tags over the limit of 10 tags. Please try adding less tags.")
+                                .Build());
+
+                            errored = true;
+                        }
+                        else
+                        {
+                            p.Tags.UnionWith(addTags);
+                        }
+
+                        break;
+
+                    case "remove":
+                    case "del":
+
+                        await statusMessage.ModifyAsync(statusEmbed
+                            .WithDescription("**Remvoing Tags**:\n\n" +
+                            "Please enter the tags you would wish to remove. Tags are one word, and multiple tags can be separated by spaces.\n\n" +
+                            $"Current Tags: `{string.Join("`, `", p.Tags)}`")
+                            .Build());
+
+                        var delFollowup = await GetFollowupMessageAsync(interact);
+
+                        if (!delFollowup.Item2) return (null, null, true);
+
+                        var delRes = delFollowup.Item1;
+
+                        var delTags = delRes.Result.Content.Trim().ToLower().Split(" ", StringSplitOptions.RemoveEmptyEntries);
+
+                        p.Tags.UnionWith(delTags);
+
+                        break;
+                }
+
+                if(!errored)
+                {
+                    await statusMessage.ModifyAsync(statusEmbed
+                        .WithDescription("Welcome to the tag editor! Please select if you would like to `add` or `remove` tags, or `save` your current tag list:\n\n" +
+                        "Options: `add`, `remove`, `save`, `exit`")
+                        .Build());
+                }
+
+                errored = false;
+
+            } while (!save);
+
+            return (p.Tags, null, false);
         }
     }
 }

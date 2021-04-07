@@ -17,7 +17,7 @@ namespace PartnerBot.Core.Entities
         public bool Active { get; set; } = false;
         public int DonorRank { get; set; } = 0;
         public string Banner { get; set; } = "";
-        internal HashSet<string> Tags { get; private set; } = new();
+        public HashSet<string> Tags { get; set; } = new();
         public string Invite { get; set; } = "";
         public bool NSFW { get; set; } = false;
         public bool ReceiveNSFW { get; set; } = false;

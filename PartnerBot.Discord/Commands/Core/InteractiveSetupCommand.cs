@@ -17,7 +17,7 @@ using PartnerBot.Discord.Commands.Conditions;
 
 namespace PartnerBot.Discord.Commands.Core
 {
-    public class SetupCommand : CoreCommandModule
+    public partial class SetupCommand : CoreCommandModule
     {
         private readonly IServiceProvider _services;
         private readonly DonorService _donor;
@@ -26,7 +26,7 @@ namespace PartnerBot.Discord.Commands.Core
                         $"*Main Options:*\n" +
                         $"`channel`, `message`, `toggle`, `save`\n\n" +
                         $"*Optional Options:*\n" +
-                        $"`add-embed`, `edit-embed`, `remove-embed`, `banner`, `color`";
+                        $"`add-embed`, `edit-embed`, `remove-embed`, `banner`, `color`, `tags`";
 
         public SetupCommand(IServiceProvider services, DonorService donor,
             PartnerManagerService partners)
@@ -45,7 +45,7 @@ namespace PartnerBot.Discord.Commands.Core
             // ... then display welcome message ...
             // ... along with donor features this server gets ...
             // ... or an advert for unlocking the donor features ...
-            // (check, cross, and lock symbols next to features for avalible, used, and need to buy stuff?)
+            // (check, cross, and lock symbols next to features for avalible, used, and need to buy stuff)
             // ... have setup requirements displayed ...
             // ... and options to setup parts of the message ...
             // ... along with a toggle option, once everything is setup ...
@@ -90,6 +90,7 @@ namespace PartnerBot.Discord.Commands.Core
             bool errored = false;
             DiscordMessage? requirementsMessage = null;
             DiscordMessage? statusMessage = null;
+            HashSet<string>? tagUpdate = null;
             do
             {
                 var requirementsEmbed = GetRequiermentsEmbed(partner, channel);
@@ -126,6 +127,7 @@ namespace PartnerBot.Discord.Commands.Core
                     case "exit":
                         await RespondError("Aborting...");
                         return;
+
                     case "save":
                         done = true;
                         break;
@@ -146,6 +148,7 @@ namespace PartnerBot.Discord.Commands.Core
                         partner.WebhookToken = chanRes.Item1.Value.Item2.Token;
                         partner.Invite = chanRes.Item1.Value.Item3;
                         break;
+
                     case "message":
                         var messageRes = await GetNewMessage(partner, statusMessage, statusEmbed);
                         if (messageRes.Item3) return;
@@ -158,6 +161,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                         partner.Message = messageRes.Item1;
                         break;
+
                     case "toggle":
                         if (!partner.Active && partner.IsSetup())
                             partner.Active = true;
@@ -235,6 +239,7 @@ namespace PartnerBot.Discord.Commands.Core
                             }
                         }
                         break;
+
                     case "edit-embed":
                         if (partner.DonorRank < 3)
                         {
@@ -314,6 +319,7 @@ namespace PartnerBot.Discord.Commands.Core
                             }
                         }
                         break;
+
                     case "remove-embed":
                         if (partner.DonorRank < 3)
                         {
@@ -406,6 +412,7 @@ namespace PartnerBot.Discord.Commands.Core
                             }
                         }
                         break;
+
                     case "banner":
                         var bannerRes = await GetNewPartnerBanner(statusMessage, statusEmbed);
                         if (bannerRes.Item3) return;
@@ -418,6 +425,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                         partner.Banner = bannerRes.Item1.AbsolutePath;
                         break;
+
                     case "color":
                     case "colour":
                         var colorRes = await GetCustomEmbedColorAsync(partner, statusMessage, statusEmbed);
@@ -431,6 +439,21 @@ namespace PartnerBot.Discord.Commands.Core
 
                         partner.BaseColor = colorRes.Item1.Value;
                         break;
+
+                    case "tag":
+                    case "tags":
+                        var tagRes = await UpdateTagsAsync(partner, statusMessage, statusEmbed);
+                        if (tagRes.Item3) return;
+
+                        if (tagRes.Item1 is null)
+                        {
+                            await RespondError(tagRes.Item2 ?? "An unknown error occoured.");
+                            return;
+                        }
+
+                        tagUpdate = tagRes.Item1;
+                        break;
+
                     default:
                         break;
                 }
@@ -445,6 +468,9 @@ namespace PartnerBot.Discord.Commands.Core
                 
                 if(channel is not null)
                     update.ChannelId = channel.Id;
+
+                if (tagUpdate is not null)
+                    update.TagOverride = tagUpdate;
 
                 return update;
             });
@@ -481,6 +507,7 @@ namespace PartnerBot.Discord.Commands.Core
             bool embedsRemaining = partner.MessageEmbeds.Count < DonorService.MAX_EMBEDS;
             bool embedAllowed = partner.DonorRank >= 3;
             bool defaultColor = partner.BaseColor.Value == DiscordColor.Gray.Value;
+            bool usedTags = partner.Tags.Count >= TAG_LIMIT;
 
             var requirementsEmbed = new DiscordEmbedBuilder()
                 .WithColor(Color_PartnerBotMagenta)
@@ -510,7 +537,10 @@ namespace PartnerBot.Discord.Commands.Core
                         : "You have used all of your embeds! Consider editing or removing some to update your message with `edit-embed` or `remove-embed`!", true)
                 .AddField($"{(defaultColor ? Cross.GetDiscordName() : Check.GetDiscordName())} Color",
                     defaultColor ? "You have no custom color set! Set one with `color`."
-                        : $"You have your custom color set to `R{partner.BaseColor.R}, G{partner.BaseColor.G}, B{partner.BaseColor.B}`! Change it with `color`.", true);
+                        : $"You have your custom color set to `R{partner.BaseColor.R}, G{partner.BaseColor.G}, B{partner.BaseColor.B}`! Change it with `color`.", true)
+                .AddField($"{(usedTags ? Check.GetDiscordName() : Cross.GetDiscordName())} Tags",
+                    usedTags ? $"You have used all {TAG_LIMIT} of your tags. Edit your current tags with `tags`!"
+                        : $"You have used {partner.Tags.Count} of your {TAG_LIMIT} avalible tags. Add some with `tags`!", true);
             
             return requirementsEmbed;
         }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq.Expressions;
 using System.Threading.Tasks;
 
 using DSharpPlus;
@@ -91,11 +92,18 @@ namespace PartnerBot.Core.Services
             if (data.Banner is not null)
                 p.Banner = data.Banner;
 
-            if (data.TagsToAdd is not null)
-                p.Tags.UnionWith(data.TagsToAdd);
+            if (data.TagOverride is null)
+            {
+                if (data.TagsToAdd is not null)
+                    p.Tags.UnionWith(data.TagsToAdd);
 
-            if (data.TagsToRemove is not null)
-                p.Tags.ExceptWith(data.TagsToRemove);
+                if (data.TagsToRemove is not null)
+                    p.Tags.ExceptWith(data.TagsToRemove);
+            }
+            else
+            {
+                p.Tags = data.TagOverride;
+            }
 
             if (data.Invite is not null)
                 p.Invite = data.Invite;
@@ -174,9 +182,15 @@ namespace PartnerBot.Core.Services
             return (true, string.Empty);
         }
 
-        public static async Task<(ulong, string)?> RegisterNewWebhook(ulong channelId)
+        public async Task<TProperty?> GetPartnerElementAsync<TProperty>(ulong guildId, Expression<Func<Partner, TProperty>> propertyExpression)
         {
-            throw new NotImplementedException();
+            var p = await _database.FindAsync<Partner>(guildId);
+
+            if (p is null) return default;
+
+            var exp = propertyExpression.Compile();
+
+            return exp.Invoke(p);
         }
     }
 }

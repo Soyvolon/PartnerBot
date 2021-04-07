@@ -16,7 +16,6 @@
 
   <ItemGroup>
     <Folder Include="Commands\Admin\" />
-    <Folder Include="Commands\Tags\" />
   </ItemGroup>
 
 </Project>
