@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 
 using PartnerBot.Core.Entities;
 using PartnerBot.Core.Entities.Configuration;
+using PartnerBot.Core.Entities.Moderation;
 
 namespace PartnerBot.Core.Database
 {
@@ -16,6 +17,7 @@ namespace PartnerBot.Core.Database
     {
         public DbSet<Partner> Partners { get; protected set; }
         public DbSet<DiscordGuildConfiguration> GuildConfigurations { get; protected set; }
+        public DbSet<GuildBan> GuildBans { get; protected set; }
 
         public PartnerDatabaseContext(DbContextOptions options) : base(options)
         {

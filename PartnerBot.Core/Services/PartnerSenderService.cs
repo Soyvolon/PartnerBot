@@ -33,7 +33,7 @@ namespace PartnerBot.Core.Services
 
         public async Task ExecuteAsync(PartnerSenderArguments senderArgs)
         {
-            (IQueryable<Partner>, IQueryable<Partner>) active;
+            (List<Partner>, List<Partner>) active;
             if (senderArgs.DevelopmentStressTest)
             {
                 // get the development stress test data set ...
@@ -42,7 +42,7 @@ namespace PartnerBot.Core.Services
             else
             {
                 // get all active partners ...
-                active = GetActivePartners(senderArgs);
+                active = await GetActivePartners(senderArgs);
             }
 
             // ... pair up active partners and queue them ...
@@ -60,11 +60,20 @@ namespace PartnerBot.Core.Services
             }
         }
 
-        private (IQueryable<Partner>, IQueryable<Partner>) GetActivePartners(PartnerSenderArguments senderArgs)
+        private async Task<(List<Partner>, List<Partner>)> GetActivePartners(PartnerSenderArguments senderArgs)
         {
-            var baseSet = _database.Partners.AsNoTracking().Where(x => x.Active);
-            // ... remove any data lower than the donor run value
-            var donorSet = baseSet.Where(x => x.DonorRank >= senderArgs.DonorRun);
+            List<Partner> baseSet = new();
+            List<Partner> donorSet = new();
+            await _database.Partners.AsNoTracking().ForEachAsync(x =>
+            {
+                if (x.Active)
+                {
+                    baseSet.Add(x);
+
+                    if (x.DonorRank >= senderArgs.DonorRun)
+                        donorSet.Add(x);
+                }
+            });
 
             return (baseSet, donorSet);
         }
@@ -72,11 +81,8 @@ namespace PartnerBot.Core.Services
         #region Partner Matching
 
         // TODO: check for pairs that don't find a match, filter then into the fullset and grabe a random partner without knowing its final value.
-        private async Task QueuePartnerData(IQueryable<Partner> runningPartners, IQueryable<Partner> fullSet, PartnerSenderArguments senderArguments)
+        private async Task QueuePartnerData(List<Partner> runningPartners, List<Partner> fullSet, PartnerSenderArguments senderArguments)
         {
-            // Lets queue up this task so we can use the result later ...
-            var listTask = Task.Run(() => runningPartners.ToList());
-            var fullListTask = Task.Run(() => fullSet.ToList());
             // ... then build the task storage for our closeness tasks ...
             List<Task<(ulong, List<(float, Partner)>)>> MatchClosenessTasks = new();
             // ... then get a closeness list for each partner ...
@@ -87,7 +93,7 @@ namespace PartnerBot.Core.Services
             // ... while that runs, lets scramble and bag all of the partners ...
 
             // ... lets get our list ...
-            var pList = await listTask;
+            var pList = runningPartners;
             // ... then randomize it ...
             pList.Shuffle();
             // ... so we create the match bag with it ...
@@ -143,7 +149,7 @@ namespace PartnerBot.Core.Services
                 if (matched) continue;
                 // ... otherwise, make sure we have a full list to pick values from ...
                 if (fullList is null)
-                    fullList = await fullListTask;
+                    fullList = fullSet;
 
                 // ... then get a random value that does not fail any paring options (no same owner, not cached) ...
                 var away = PickPartner(p, fullList, senderArguments);
@@ -229,7 +235,7 @@ namespace PartnerBot.Core.Services
 
         #region Match Closeness
 
-        private Task<(ulong, List<(float, Partner)>)> GetMatchCloseness(Partner toMatch, IQueryable<Partner> fullList, PartnerSenderArguments senderArguments)
+        private Task<(ulong, List<(float, Partner)>)> GetMatchCloseness(Partner toMatch, List<Partner> fullList, PartnerSenderArguments senderArguments)
         {
             // We want to get a value between 0 and 1, where 1 is a perfect match and 0 is a very bad match.
             // The match should compare tags, the server owner, the cahced servers, and server size.
@@ -280,7 +286,7 @@ namespace PartnerBot.Core.Services
         #endregion
 
         #region Development Dataset
-        private async Task<(IQueryable<Partner>, IQueryable<Partner>)> GetDevelopmentStressTestDataset(PartnerSenderArguments senderArguments)
+        private async Task<(List<Partner>, List<Partner>)> GetDevelopmentStressTestDataset(PartnerSenderArguments senderArguments)
         {
             var data = await DevelopmentStressTestDataManager.GetDataAsync();
 
@@ -320,9 +326,9 @@ namespace PartnerBot.Core.Services
                 lastOwner = item.ChannelId;
             }
 
-            var donorSet = fullSet.Where(x => x.DonorRank >= senderArguments.DonorRun);
+            List<Partner> donorSet = new(fullSet.Where(x => x.DonorRank >= senderArguments.DonorRun));
 
-            return (donorSet.AsQueryable(), fullSet.AsQueryable());
+            return (donorSet, fullSet);
         }
         #endregion
     }

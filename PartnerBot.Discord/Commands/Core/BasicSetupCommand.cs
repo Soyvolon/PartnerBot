@@ -8,6 +8,7 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 
+using PartnerBot.Core.Entities.Moderation;
 using PartnerBot.Core.Services;
 using PartnerBot.Discord.Commands.Conditions;
 
@@ -27,13 +28,23 @@ namespace PartnerBot.Discord.Commands.Core
             [Description("Partner message.")]
             string message)
         {
-            if(string.IsNullOrWhiteSpace(message))
+            GuildBan? ban;
+            if ((ban = await _ban.GetBanAsync(ctx.Guild.Id)) is not null)
+            {
+                await RespondError($"Your server is banned due to: {ban.Reason}\n\n" +
+                    $"Contact a staff member on the [support server](https://discord.gg/3SCTnhCMam) to learn more.");
+
+                await ctx.Guild.LeaveAsync();
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(message))
             {
                 await RespondError("The partner message can not be null or white space!");
                 return;
             }
 
-            if(ChannelVerificationService.VerifyChannel(channel))
+            if(GuildVerificationService.VerifyChannel(channel))
             {
                 var res = await _partners.UpdateOrAddPartnerAsync(ctx.Guild.Id, () => new()
                 {

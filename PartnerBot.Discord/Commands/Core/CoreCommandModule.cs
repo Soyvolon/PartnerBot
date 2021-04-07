@@ -93,7 +93,7 @@ namespace PartnerBot.Discord.Commands.Core
                 {
                     var mentioned = res.Result.MentionedChannels[0];
 
-                    if(ChannelVerificationService.VerifyChannel(mentioned))
+                    if(GuildVerificationService.VerifyChannel(mentioned))
                     {
                         valid = true;
                         c = mentioned;
@@ -226,7 +226,7 @@ namespace PartnerBot.Discord.Commands.Core
             {
                 foreach (var o in invalid)
                 {
-                    await o.UpdateAsync(ChannelVerificationService.RequiredPermissions, reason: "Partner Bot Auto Channel Setup");
+                    await o.UpdateAsync(GuildVerificationService.RequiredPermissions, reason: "Partner Bot Auto Channel Setup");
                 }
             }
             catch (UnauthorizedException)

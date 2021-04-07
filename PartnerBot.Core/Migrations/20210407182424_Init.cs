@@ -1,11 +1,26 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+﻿using System;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace PartnerBot.Core.Migrations
 {
-    public partial class PartnerInit : Migration
+    public partial class Init : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "GuildBans",
+                columns: table => new
+                {
+                    GuildId = table.Column<ulong>(type: "INTEGER", nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    Reason = table.Column<string>(type: "TEXT", nullable: true),
+                    BanTime = table.Column<DateTime>(type: "TEXT", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_GuildBans", x => x.GuildId);
+                });
+
             migrationBuilder.CreateTable(
                 name: "GuildConfigurations",
                 columns: table => new
@@ -51,6 +66,9 @@ namespace PartnerBot.Core.Migrations
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropTable(
+                name: "GuildBans");
+
             migrationBuilder.DropTable(
                 name: "GuildConfigurations");
 

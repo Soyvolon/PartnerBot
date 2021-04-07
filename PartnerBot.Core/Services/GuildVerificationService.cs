@@ -8,13 +8,14 @@ using DSharpPlus;
 using DSharpPlus.Entities;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 using PartnerBot.Core.Database;
 using PartnerBot.Core.Entities;
 
 namespace PartnerBot.Core.Services
 {
-    public class ChannelVerificationService
+    public class GuildVerificationService
     {
         public const int DOUBLE_SECONDS_PER_DAY = 43200;
 
@@ -26,22 +27,25 @@ namespace PartnerBot.Core.Services
         public ConcurrentDictionary<ulong, int> SlotTree { get; private set; }
         public Timer? VerificationTimer { get; private set; }
 
-        private readonly PartnerDatabaseContext _database;
+        private readonly IServiceProvider _services;
         private readonly DiscordRestClient _rest;
+        private readonly DonorService _donor;
 
         private int CurrentSlot { get; set; }
 
-        public ChannelVerificationService(PartnerDatabaseContext database, DiscordRestClient rest)
+        public GuildVerificationService(IServiceProvider services, DiscordRestClient rest,
+            DonorService donor)
         {
-            _database = database;
+            _services = services;
             _rest = rest;
+            _donor = donor;
 
             ChannelTree = new ConcurrentDictionary<ulong, ulong>[DOUBLE_SECONDS_PER_DAY];
             SlotsBag = new();
             SlotTree = new();
         }
 
-        public void Initalize()
+        public async Task InitalizeAsync()
         {
             SlotsBag = new();
             SlotTree = new();
@@ -53,11 +57,15 @@ namespace PartnerBot.Core.Services
                 ChannelTree[i] = new();
             }
 
-            var active = _database.Partners
-                .AsNoTracking()
-                .Where(x => x.Active);
+            var _database = _services.GetRequiredService<PartnerDatabaseContext>();
 
-            ConcurrentBag<Partner> bag = new(active);
+            ConcurrentBag<Partner> bag = new();
+
+            await _database.Partners.AsNoTracking().ForEachAsync(x =>
+            {
+                if (x.Active)
+                    bag.Add(x);
+            });
 
             while(bag.TryTake(out var res))
             {
@@ -133,6 +141,8 @@ namespace PartnerBot.Core.Services
                         await DisablePartner(id.Value);
                         continue;
                     }
+
+                    await UpdateDonorRanking(hook.GuildId);
                 }
                 catch
                 {
@@ -142,6 +152,7 @@ namespace PartnerBot.Core.Services
 
                 var guild = await _rest.GetGuildAsync(id.Value);
 
+                var _database = _services.GetRequiredService<PartnerDatabaseContext>();
                 var p = await _database.FindAsync<Partner>(id.Value);
                 p.UserCount = guild.MemberCount;
                 await _database.SaveChangesAsync();
@@ -150,6 +161,7 @@ namespace PartnerBot.Core.Services
 
         private async Task DisablePartner(ulong guildId)
         {
+            var _database = _services.GetRequiredService<PartnerDatabaseContext>();
             var p = await _database.FindAsync<Partner>(guildId);
             p.Active = false;
             await _database.SaveChangesAsync();
@@ -168,6 +180,17 @@ namespace PartnerBot.Core.Services
             }
 
             return true;
+        }
+
+        public async Task UpdateDonorRanking(ulong guildId)
+        {
+            var _database = _services.GetRequiredService<PartnerDatabaseContext>();
+            var p = await _database.FindAsync<Partner>(guildId);
+
+            var rank = await _donor.GetDonorRankAsync(p.OwnerId);
+
+            p.DonorRank = rank;
+            await _database.SaveChangesAsync();
         }
     }
 }

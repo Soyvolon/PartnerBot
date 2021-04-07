@@ -14,8 +14,4 @@
     <PackageReference Include="DSharpPlus.Interactivity" Version="4.0.0-nightly-00808" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Commands\Admin\" />
-  </ItemGroup>
-
 </Project>

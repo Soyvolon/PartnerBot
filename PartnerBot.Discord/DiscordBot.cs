@@ -35,7 +35,7 @@ namespace PartnerBot.Discord
         private readonly DiscordRestClient _rest;
         private readonly CommandErrorHandlingService _error;
         private readonly CommandHandlingService _command;
-        private readonly ChannelVerificationService _verify;
+        private readonly GuildVerificationService _verify;
         private readonly IServiceProvider _serviceProvider;
 
         private Timer PartnerTimer { get; set; }
@@ -43,7 +43,7 @@ namespace PartnerBot.Discord
         public DiscordBot(PartnerSenderService partnerSender,
             DiscordShardedClient client, DiscordRestClient rest,
             CommandErrorHandlingService error, CommandHandlingService command,
-            ChannelVerificationService verify, PartnerBotConfiguration pcfg,
+            GuildVerificationService verify, PartnerBotConfiguration pcfg,
             IServiceProvider serviceProvider)
         {
             _partnerSender = partnerSender;
@@ -78,7 +78,7 @@ namespace PartnerBot.Discord
 
             await _rest.InitializeAsync();
 
-            _verify.Initalize();
+            await _verify.InitalizeAsync();
         }
 
         private Task Client_Ready(DiscordClient sender, DSharpPlus.EventArgs.ReadyEventArgs e)
@@ -127,6 +127,8 @@ namespace PartnerBot.Discord
                     {
                         DonorRun = 0
                     }));
+
+                    firstRun = true;
                 }
                 else if(min >= 15 && !secondRun)
                 {
@@ -134,6 +136,8 @@ namespace PartnerBot.Discord
                     {
                         DonorRun = 1
                     }));
+
+                    secondRun = true;
                 }
                 else if(min >= 30 && !thirdRun)
                 {
@@ -141,6 +145,8 @@ namespace PartnerBot.Discord
                     {
                         DonorRun = 2
                     }));
+
+                    thirdRun = true;
                 }
                 else
                 {
@@ -150,6 +156,9 @@ namespace PartnerBot.Discord
                     }));
 
                     lastHour = chour;
+                    firstRun = false;
+                    secondRun = false;
+                    thirdRun = false;
                 }
             }
         }

@@ -15,11 +15,11 @@ namespace PartnerBot.Core.Services
 {
     public class PartnerManagerService
     {
-        private readonly ChannelVerificationService _channelVerification;
+        private readonly GuildVerificationService _channelVerification;
         private readonly PartnerDatabaseContext _database;
         private readonly DiscordRestClient _rest;
 
-        public PartnerManagerService(ChannelVerificationService channelVerification, PartnerDatabaseContext database,
+        public PartnerManagerService(GuildVerificationService channelVerification, PartnerDatabaseContext database,
             DiscordRestClient rest)
         {
             _channelVerification = channelVerification;
@@ -145,35 +145,44 @@ namespace PartnerBot.Core.Services
 
             if (data.ChannelId is not null)
             {
-                DiscordWebhook hook;
-                if (p.WebhookId == 0)
+                if (data.ChannelId == 0)
                 {
-                    hook = await _rest.CreateWebhookAsync(data.ChannelId.Value, "Partner Bot Message Sender", reason: "Partner Bot Sender Webhook Update");
+                    p.WebhookToken = "";
+                    p.WebhookId = 0;
                 }
                 else
                 {
-                    bool updateWebhook = false;
-                    try
-                    {
-                        hook = await _rest.GetWebhookAsync(p.WebhookId);
 
-                        updateWebhook = hook.ChannelId != data.ChannelId;
-                    }
-                    catch (NotFoundException)
+                    DiscordWebhook hook;
+                    if (p.WebhookId == 0)
                     {
                         hook = await _rest.CreateWebhookAsync(data.ChannelId.Value, "Partner Bot Message Sender", reason: "Partner Bot Sender Webhook Update");
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        return (false, ex.Message);
+                        bool updateWebhook = false;
+                        try
+                        {
+                            hook = await _rest.GetWebhookAsync(p.WebhookId);
+
+                            updateWebhook = hook.ChannelId != data.ChannelId;
+                        }
+                        catch (NotFoundException)
+                        {
+                            hook = await _rest.CreateWebhookAsync(data.ChannelId.Value, "Partner Bot Message Sender", reason: "Partner Bot Sender Webhook Update");
+                        }
+                        catch (Exception ex)
+                        {
+                            return (false, ex.Message);
+                        }
+
+                        if (updateWebhook)
+                            await hook.ModifyAsync(channelId: data.ChannelId.Value, reason: "Partner Bot Sender Webhook Update");
                     }
 
-                    if(updateWebhook)
-                        await hook.ModifyAsync(channelId: data.ChannelId.Value, reason: "Partner Bot Sender Webhook Update");
+                    p.WebhookId = hook.Id;
+                    p.WebhookToken = hook.Token;
                 }
-
-                p.WebhookId = hook.Id;
-                p.WebhookToken = hook.Token;
             }
 
             _database.Update(p);

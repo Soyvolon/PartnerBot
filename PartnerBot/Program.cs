@@ -73,13 +73,15 @@ namespace PartnerBot
                     return new(botCfg);
                 })
                 .AddSingleton<PartnerManagerService>()
-                .AddSingleton<ChannelVerificationService>()
+                .AddSingleton<GuildVerificationService>()
                 .AddSingleton<PartnerSenderService>()
                 .AddSingleton<ClientLoggingService>()
                 .AddSingleton<CommandErrorHandlingService>()
                 .AddSingleton<CommandHandlingService>()
                 .AddSingleton<DiscordBot>()
                 .AddSingleton<DonorService>()
+                .AddSingleton<GuildBanService>()
+                .AddLogging(o => o.SetMinimumLevel(LogLevel.Debug).AddConsole())
                 .AddSingleton(pcfg);
 
             IServiceProvider provider = services.BuildServiceProvider();

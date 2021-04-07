@@ -72,14 +72,18 @@ namespace DBConverter
                 var local = provider.GetRequiredService<PartnerDatabaseContext>();
                 await ApplyDatabaseMigrations(local);
 
+                HashSet<ulong> added = new();
                 await remote.Partnerlists.ForEachAsync(async (x) =>
                 {
+                    var uid = (ulong)x.GuildId;
+                    if (!added.Add(uid)) return;
+
                     await local.Partners.AddAsync(new()
                     {
                         Active = false,
                         Banner = x.Banner,
                         DonorRank = x.DonorRank.HasValue ? x.DonorRank.Value - 1 : 0,
-                        GuildId = (ulong)x.GuildId,
+                        GuildId = uid,
                         Message = x.Message,
                         NSFW = Convert.ToBoolean(x.Nsfw ?? 0),
                         ReceiveNSFW = Convert.ToBoolean(x.ReceiveNsfw ?? 0),
@@ -94,20 +98,33 @@ namespace DBConverter
 
                 logger.LogInformation("\n\nSaved Partner Data\n\n");
 
+                added = new();
                 await remote.Guildbans.ForEachAsync(async (x) =>
                 {
+                    var id = (ulong)x.Id;
+                    if (!added.Add(id)) return;
 
+                    await local.GuildBans.AddAsync(new()
+                    {
+                        BanTime = DateTime.Now,
+                        GuildId = id,
+                        Reason = x.Reason
+                    });
                 });
 
                 await local.SaveChangesAsync();
                 
                 logger.LogInformation("\n\nSaved Guild Bans Data\n\n");
 
+                added = new();
                 await remote.Guildconfigs.ForEachAsync(async (x) =>
                 {
+                    var gid = (ulong)x.GuildId;
+                    if (!added.Add(gid)) return;
+
                     await local.GuildConfigurations.AddAsync(new()
                     {
-                        GuildId = (ulong)x.GuildId,
+                        GuildId = gid,
                         Prefix = string.IsNullOrWhiteSpace(x.Prefix) ? "pb!" : x.Prefix
                     });
 

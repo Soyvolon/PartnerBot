@@ -12,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using PartnerBot.Core.Database;
 using PartnerBot.Core.Entities;
+using PartnerBot.Core.Entities.Moderation;
 using PartnerBot.Core.Services;
 using PartnerBot.Discord.Commands.Conditions;
 
@@ -22,6 +23,7 @@ namespace PartnerBot.Discord.Commands.Core
         private readonly IServiceProvider _services;
         private readonly DonorService _donor;
         private readonly PartnerManagerService _partners;
+        private readonly GuildBanService _ban;
         private static readonly string BASE_MESSAGE = $"**Setup Options:**\n\n" +
                         $"*Main Options:*\n" +
                         $"`channel`, `message`, `toggle`, `save`\n\n" +
@@ -29,11 +31,12 @@ namespace PartnerBot.Discord.Commands.Core
                         $"`add-embed`, `edit-embed`, `remove-embed`, `banner`, `color`, `tags`";
 
         public SetupCommand(IServiceProvider services, DonorService donor,
-            PartnerManagerService partners)
+            PartnerManagerService partners, GuildBanService ban)
         {
             _services = services;
             _donor = donor;
             _partners = partners;
+            _ban = ban;
         }
 
         [Command("setup")]
@@ -50,6 +53,16 @@ namespace PartnerBot.Discord.Commands.Core
             // ... and options to setup parts of the message ...
             // ... along with a toggle option, once everything is setup ...
             // ... once setup is closed, save new data.
+
+            GuildBan? ban;
+            if((ban = await _ban.GetBanAsync(ctx.Guild.Id)) is not null)
+            {
+                await RespondError($"Your server is banned due to: {ban.Reason}\n\n" +
+                    $"Contact a staff member on the [support server](https://discord.gg/3SCTnhCMam) to learn more.");
+
+                await ctx.Guild.LeaveAsync();
+                return;
+            }
 
             var db = _services.GetRequiredService<PartnerDatabaseContext>();
             var partner = await db.Partners.AsNoTracking().FirstOrDefaultAsync(x => x.GuildId == ctx.Guild.Id);
@@ -69,7 +82,7 @@ namespace PartnerBot.Discord.Commands.Core
             partner.GuildName = ctx.Guild.Name;
             partner.GuildIcon = ctx.Guild.IconUrl;
             partner.UserCount = ctx.Guild.MemberCount;
-            partner.DonorRank = await _donor.GetDonorRank(partner);
+            partner.DonorRank = await _donor.GetDonorRankAsync(partner.OwnerId);
 
             await db.SaveChangesAsync();
 
@@ -499,7 +512,7 @@ namespace PartnerBot.Discord.Commands.Core
             // Optional: banner, embed, links
             bool validChannel = false;
             if (channel is not null)
-                validChannel = ChannelVerificationService.VerifyChannel(channel);
+                validChannel = GuildVerificationService.VerifyChannel(channel);
             bool invalidMessage = string.IsNullOrWhiteSpace(partner.Message);
             bool invalidBanner = string.IsNullOrWhiteSpace(partner.Banner);
             bool maxLinks = partner.LinksUsed >= 3;

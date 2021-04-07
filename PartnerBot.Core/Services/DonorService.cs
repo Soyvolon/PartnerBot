@@ -26,7 +26,7 @@ namespace PartnerBot.Core.Services
             _pcfg = pcfg;
         }
 
-        public async Task<int> GetDonorRank(Partner partner)
+        public async Task<int> GetDonorRankAsync(ulong ownerId)
         {
             if(HomeGuild is null)
             {
@@ -37,7 +37,7 @@ namespace PartnerBot.Core.Services
 
             if (HomeGuild is not null)
             {
-                var m = await HomeGuild.GetMemberAsync(partner.OwnerId);
+                var m = await HomeGuild.GetMemberAsync(ownerId);
 
                 int rank = 0;
                 foreach (var role in m.Roles)
