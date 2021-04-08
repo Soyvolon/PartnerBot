@@ -9,7 +9,7 @@ using PartnerBot.Discord.Commands.Conditions;
 
 namespace PartnerBot.Discord.Commands.Admin
 {
-    public class GuildBanCommand : BaseCommandModule
+    public class GuildBanCommand : CommandModule
     {
         private readonly GuildBanService _ban;
 
@@ -45,7 +45,11 @@ namespace PartnerBot.Discord.Commands.Admin
             [Description("Guild ID to unban")]
             ulong guildId)
         {
+            var completed = await _ban.UnbanGuildAsync(guildId);
 
+            if (completed)
+                await RespondSuccess("Guild unbanned.");
+            else await RespondError("This guild is not banned.");
         }
     }
 }

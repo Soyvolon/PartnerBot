@@ -45,6 +45,9 @@ namespace PartnerBot.Core.Services
                 active = await GetActivePartners(senderArgs);
             }
 
+            if (active.Item1.Count <= 0 || active.Item2.Count <= 0)
+                return;
+
             // ... pair up active partners and queue them ...
             await QueuePartnerData(active.Item1, active.Item2, senderArgs);
 

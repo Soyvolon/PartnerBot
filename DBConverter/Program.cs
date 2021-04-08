@@ -84,7 +84,7 @@ namespace DBConverter
                         Banner = x.Banner,
                         DonorRank = x.DonorRank.HasValue ? x.DonorRank.Value - 1 : 0,
                         GuildId = uid,
-                        Message = x.Message,
+                        Message = x.Message.Length <= 2 ? "" : x.Message[1..(x.Message.Length-2)],
                         NSFW = Convert.ToBoolean(x.Nsfw ?? 0),
                         ReceiveNSFW = Convert.ToBoolean(x.ReceiveNsfw ?? 0),
                         OwnerId = (ulong)x.OwnerId,
