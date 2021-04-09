@@ -13,5 +13,7 @@
       "role_id": 4321,
       "weight": 3
     }
-  ]
+  ],
+  "bot_permissions": 536964113,
+  "home_guild_invite": ""
 }

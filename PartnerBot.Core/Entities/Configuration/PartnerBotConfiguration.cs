@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
+using DSharpPlus;
+
 namespace PartnerBot.Core.Entities.Configuration
 {
     public class PartnerBotConfiguration
@@ -17,9 +19,14 @@ namespace PartnerBot.Core.Entities.Configuration
         public ulong HomeGuild { get; internal set; }
         [JsonPropertyName("donor_roles")]
         public List<PartnerBotDonorRoleConfiguration> DonorRoles { get; internal set; }
+        [JsonPropertyName("bot_permissions")]
+        public Permissions BotPermissions { get; internal set; }
+        [JsonPropertyName("home_guild_invite")]
+        public string InviteCode { get; internal set; }
 
         [JsonConstructor]
-        public PartnerBotConfiguration(string token, string prefix, List<ulong> owners, List<ulong> staffRoles, ulong homeGuild, List<PartnerBotDonorRoleConfiguration> donorRoles)
+        public PartnerBotConfiguration(string token, string prefix, List<ulong> owners, List<ulong> staffRoles, ulong homeGuild, List<PartnerBotDonorRoleConfiguration> donorRoles,
+            Permissions botPermissions, string inviteCode)
         {
             Token = token;
             Prefix = prefix;
@@ -27,6 +34,8 @@ namespace PartnerBot.Core.Entities.Configuration
             StaffRoles = staffRoles;
             HomeGuild = homeGuild;
             DonorRoles = donorRoles;
+            BotPermissions = botPermissions;
+            InviteCode = inviteCode;
         }
     }
 
