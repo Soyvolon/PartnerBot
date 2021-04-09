@@ -121,7 +121,7 @@ namespace PartnerBot.Discord
             {
                 var min = DateTime.UtcNow.Minute;
 
-                if(min >= 0 && !firstRun)
+                if(min >= 0 && min < 15 && !firstRun)
                 {
                     _ = Task.Run(async () => await _partnerSender.ExecuteAsync(new()
                     {
@@ -130,7 +130,7 @@ namespace PartnerBot.Discord
 
                     firstRun = true;
                 }
-                else if(min >= 15 && !secondRun)
+                else if(min >= 15 && min < 30 && !secondRun)
                 {
                     _ = Task.Run(async () => await _partnerSender.ExecuteAsync(new()
                     {
@@ -139,7 +139,7 @@ namespace PartnerBot.Discord
 
                     secondRun = true;
                 }
-                else if(min >= 30 && !thirdRun)
+                else if(min >= 30 && min < 45 && !thirdRun)
                 {
                     _ = Task.Run(async () => await _partnerSender.ExecuteAsync(new()
                     {

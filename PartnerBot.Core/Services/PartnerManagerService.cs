@@ -67,7 +67,7 @@ namespace PartnerBot.Core.Services
             return (partner, string.Empty);
         }
 
-        public async Task<(bool, string)> UpdateOrAddPartnerAsync(ulong guildId, Func<PartnerUpdater> update)
+        public async Task<(Partner?, string)> UpdateOrAddPartnerAsync(ulong guildId, Func<PartnerUpdater> update)
         {
             var data = update.Invoke();
 
@@ -75,10 +75,19 @@ namespace PartnerBot.Core.Services
 
             if (p is null)
             {
-                p = new();
+                p = new()
+                {
+                    GuildId = guildId
+                };
                 await _database.AddAsync(p);
                 await _database.SaveChangesAsync();
             }
+
+            if (data.GuildIcon is not null)
+                p.GuildIcon = data.GuildIcon;
+
+            if (data.GuildName is not null)
+                p.GuildName = data.GuildName;
 
             if (data.OwnerId is not null)
                 p.OwnerId = data.OwnerId.Value;
@@ -154,9 +163,11 @@ namespace PartnerBot.Core.Services
                 {
 
                     DiscordWebhook hook;
+                    DiscordInvite invite;
                     if (p.WebhookId == 0)
                     {
                         hook = await _rest.CreateWebhookAsync(data.ChannelId.Value, "Partner Bot Message Sender", reason: "Partner Bot Sender Webhook Update");
+                        invite = await _rest.CreateChannelInviteAsync(data.ChannelId.Value, 0, 0, false, false, "Partner Bot Inivte");
                     }
                     else
                     {
@@ -164,16 +175,18 @@ namespace PartnerBot.Core.Services
                         try
                         {
                             hook = await _rest.GetWebhookAsync(p.WebhookId);
+                            invite = await _rest.CreateChannelInviteAsync(data.ChannelId.Value, 0, 0, false, false, "Partner Bot Inivte");
 
                             updateWebhook = hook.ChannelId != data.ChannelId;
                         }
                         catch (NotFoundException)
                         {
                             hook = await _rest.CreateWebhookAsync(data.ChannelId.Value, "Partner Bot Message Sender", reason: "Partner Bot Sender Webhook Update");
+                            invite = await _rest.CreateChannelInviteAsync(data.ChannelId.Value, 0, 0, false, false, "Partner Bot Inivte");
                         }
                         catch (Exception ex)
                         {
-                            return (false, ex.Message);
+                            return (null, ex.Message);
                         }
 
                         if (updateWebhook)
@@ -182,13 +195,14 @@ namespace PartnerBot.Core.Services
 
                     p.WebhookId = hook.Id;
                     p.WebhookToken = hook.Token;
+                    p.Invite = invite.Code;
                 }
             }
 
             _database.Update(p);
             await _database.SaveChangesAsync();
 
-            return (true, string.Empty);
+            return (p, string.Empty);
         }
 
         public async Task<TProperty?> GetPartnerElementAsync<TProperty>(ulong guildId, Expression<Func<Partner, TProperty>> propertyExpression)

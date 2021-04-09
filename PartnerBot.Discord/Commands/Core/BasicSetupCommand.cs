@@ -8,6 +8,7 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 
+using PartnerBot.Core.Entities;
 using PartnerBot.Core.Entities.Moderation;
 using PartnerBot.Core.Services;
 using PartnerBot.Discord.Commands.Conditions;
@@ -46,16 +47,30 @@ namespace PartnerBot.Discord.Commands.Core
 
             if(GuildVerificationService.VerifyChannel(channel))
             {
-                var res = await _partners.UpdateOrAddPartnerAsync(ctx.Guild.Id, () => new()
-                {
-                    Active = true,
-                    ChannelId = channel.Id,
-                    Message = message
+                var drank = await _donor.GetDonorRankAsync(ctx.Guild.OwnerId);
+                var res = await _partners.UpdateOrAddPartnerAsync(ctx.Guild.Id, () => {
+                    PartnerUpdater dat = new()
+                    {
+                        Active = true,
+                        ChannelId = channel.Id,
+                        Message = message,
+                        GuildIcon = ctx.Guild.IconUrl,
+                        GuildName = ctx.Guild.Name,
+                        UserCount = ctx.Guild.MemberCount,
+                        OwnerId = ctx.Guild.OwnerId,
+                        DonorRank = drank
+                    };
+
+                    return dat;
                 });
 
-                if (res.Item1)
+                if (res.Item1 is not null)
                 {
                     await RespondSuccess($"Partner Bot is now setup and toggled on! A test message has been sent to {channel.Mention}");
+
+                    var data = res.Item1.BuildData(res.Item1, false);
+
+                    await data.ExecuteAsync(_rest, new());
                 }
                 else
                 {

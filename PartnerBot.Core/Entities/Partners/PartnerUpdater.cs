@@ -6,6 +6,8 @@ namespace PartnerBot.Core.Entities
 {
     public class PartnerUpdater
     {
+        public string? GuildName { get; set; } = null;
+        public string? GuildIcon { get; set; } = null;
         public ulong? OwnerId { get; set; } = null;
         public string? Message { get; set; } = null;
         public bool? Active { get; set; } = null;
@@ -41,6 +43,8 @@ namespace PartnerBot.Core.Entities
                 LinksUsed = p.LinksUsed,
                 BaseColor = p.BaseColor,
                 MessageEmbeds = p.MessageEmbeds,
+                GuildName = p.GuildName,
+                GuildIcon = p.GuildIcon
             };
         }
     }

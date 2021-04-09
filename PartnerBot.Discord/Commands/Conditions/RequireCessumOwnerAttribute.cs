@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 
+using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 
@@ -18,7 +19,7 @@ namespace PartnerBot.Discord.Commands.Conditions
 
         public RequireCessumOwnerAttribute()
         {
-            _pcfg = DiscordBot.PbCfg ?? new("", "pb!", new(), new(), 0, new());
+            _pcfg = DiscordBot.PbCfg ?? new("", "pb!", new(), new(), 0, new(), Permissions.None, "");
         }
 
         public override Task<bool> ExecuteCheckAsync(CommandContext ctx, bool help)

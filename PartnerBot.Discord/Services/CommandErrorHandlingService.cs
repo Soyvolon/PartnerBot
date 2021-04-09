@@ -29,7 +29,7 @@ namespace PartnerBot.Discord.Services
 
         public Task Client_CommandExecuted(CommandsNextExtension sender, CommandExecutionEventArgs e)
         {
-            sender.Client.Logger.LogDebug(DiscordBot.Event_ClientLogger, $"Command {e.Command.Name} executed by {e.Context.User.Username} on {e.Context.Guild.Name}");
+            sender.Client.Logger.LogDebug(DiscordBot.Event_ClientLogger, $"Command {e.Command.Name} executed by {e.Context.User.Username} on {e.Context.Guild?.Name ?? ""}");
             return Task.CompletedTask;
         }
     }

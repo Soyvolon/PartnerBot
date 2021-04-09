@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using DSharpPlus;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 using PartnerBot.Core.Database;
 using PartnerBot.Core.Entities;
@@ -18,6 +19,7 @@ namespace PartnerBot.Core.Services
     {
         private readonly PartnerDatabaseContext _database;
         private readonly DiscordRestClient _rest;
+        private readonly ILogger _logger;
         private ConcurrentQueue<PartnerData> PartnerDataQueue { get; init; }
         private ConcurrentDictionary<ulong, ConcurrentQueue<ulong>> Cache { get; init; }
         private const int CAHCE_MAX_SIZE = 24;
@@ -26,6 +28,7 @@ namespace PartnerBot.Core.Services
         {
             _database = database;
             _rest = rest;
+            _logger = _rest.Logger;
 
             PartnerDataQueue = new();
             Cache = new();
@@ -33,6 +36,8 @@ namespace PartnerBot.Core.Services
 
         public async Task ExecuteAsync(PartnerSenderArguments senderArgs)
         {
+            _logger.LogInformation($"Started partner run: {senderArgs}");
+
             (List<Partner>, List<Partner>) active;
             if (senderArgs.DevelopmentStressTest)
             {
@@ -45,14 +50,20 @@ namespace PartnerBot.Core.Services
                 active = await GetActivePartners(senderArgs);
             }
 
+            _logger.LogInformation($"Partner sets received. Run: {active.Item1.Count} | Full: {active.Item2.Count}");
+
             if (active.Item1.Count <= 0 || active.Item2.Count <= 0)
                 return;
 
             // ... pair up active partners and queue them ...
             await QueuePartnerData(active.Item1, active.Item2, senderArgs);
 
+            _logger.LogInformation($"Partner data queued. Queue Count: {PartnerDataQueue.Count}");
+
             // ... then execute the queue (off with its head!)
             await ExecuteWebhooksAsync(senderArgs);
+
+            _logger.LogInformation($"Partner webhooks are started.");
         }
 
         private async Task ExecuteWebhooksAsync(PartnerSenderArguments senderArguments)
@@ -154,8 +165,12 @@ namespace PartnerBot.Core.Services
                 if (fullList is null)
                     fullList = fullSet;
 
+                if (fullSet.Count <= 1) return;
+
                 // ... then get a random value that does not fail any paring options (no same owner, not cached) ...
                 var away = PickPartner(p, fullList, senderArguments);
+                // looks like no good match was found, go to next partner.
+                if (away is null) continue;
 
                 var homeMatchAlt = p.BuildData(away, false);
 
@@ -182,14 +197,19 @@ namespace PartnerBot.Core.Services
             }
         }
 
-        private Partner PickPartner(Partner home, List<Partner> fullList, PartnerSenderArguments senderArguments)
+        private Partner? PickPartner(Partner home, List<Partner> fullList, PartnerSenderArguments senderArguments)
         {
             Partner away;
+            int fail = 0;
             do
             {
                 away = fullList[ThreadSafeRandom.Next(0, fullList.Count)];
-            } while (away.OwnerId == home.OwnerId ||
-                (!senderArguments.IgnoreCacheMatch && CheckCache(home.GuildId, away.GuildId)));
+            } while ((away.OwnerId == home.OwnerId ||
+                (!senderArguments.IgnoreCacheMatch && CheckCache(home.GuildId, away.GuildId)))
+                && fail++ < 10);
+
+            if (fail >= 10)
+                return null;
 
             return away;
         }

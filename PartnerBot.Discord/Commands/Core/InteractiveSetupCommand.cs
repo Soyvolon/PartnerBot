@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
+using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
@@ -24,6 +25,7 @@ namespace PartnerBot.Discord.Commands.Core
         private readonly DonorService _donor;
         private readonly PartnerManagerService _partners;
         private readonly GuildBanService _ban;
+        private readonly DiscordRestClient _rest;
         private static readonly string BASE_MESSAGE = $"**Setup Options:**\n\n" +
                         $"*Main Options:*\n" +
                         $"`channel`, `message`, `toggle`, `save`\n\n" +
@@ -31,12 +33,14 @@ namespace PartnerBot.Discord.Commands.Core
                         $"`add-embed`, `edit-embed`, `remove-embed`, `banner`, `color`, `tags`";
 
         public SetupCommand(IServiceProvider services, DonorService donor,
-            PartnerManagerService partners, GuildBanService ban)
+            PartnerManagerService partners, GuildBanService ban,
+            DiscordRestClient rest)
         {
             _services = services;
             _donor = donor;
             _partners = partners;
             _ban = ban;
+            _rest = rest;
         }
 
         [Command("setup")]
@@ -488,7 +492,7 @@ namespace PartnerBot.Discord.Commands.Core
                 return update;
             });
 
-            if (updateRes.Item1)
+            if (updateRes.Item1 is not null)
             {
                 statusEmbed.WithTitle("Partner Bot Setup - Main")
                     .WithDescription("Partner Setup Saved!")
