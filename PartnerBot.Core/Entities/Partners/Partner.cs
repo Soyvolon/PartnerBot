@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -26,6 +27,7 @@ namespace PartnerBot.Core.Entities
         public int LinksUsed { get; set; } = 0;
         public DiscordColor BaseColor { get; set; } = DiscordColor.Gray;
         public List<DiscordEmbedBuilder> MessageEmbeds { get; set; } = new();
+        public string? VanityInvite { get; set; } = null;
 
         public Partner() { }
 
@@ -45,6 +47,19 @@ namespace PartnerBot.Core.Entities
             return !string.IsNullOrWhiteSpace(WebhookToken)
                 && WebhookId != 0
                 && !string.IsNullOrWhiteSpace(Invite);
+        }
+
+        public void ModifyToDonorRank()
+        {
+            if (LinksUsed > DonorRank)
+                RemoveExtraLinks();
+
+
+        }
+
+        private void RemoveExtraLinks()
+        {
+
         }
     }
 }

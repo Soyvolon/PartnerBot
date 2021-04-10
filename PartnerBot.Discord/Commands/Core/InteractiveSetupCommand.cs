@@ -30,7 +30,7 @@ namespace PartnerBot.Discord.Commands.Core
                         $"*Main Options:*\n" +
                         $"`channel`, `message`, `toggle`, `save`\n\n" +
                         $"*Optional Options:*\n" +
-                        $"`add-embed`, `edit-embed`, `remove-embed`, `banner`, `color`, `tags`";
+                        $"`add-embed`, `edit-embed`, `remove-embed`, `banner`, `color`, `tags`, `vanity`";
 
         public SetupCommand(IServiceProvider services, DonorService donor,
             PartnerManagerService partners, GuildBanService ban,
@@ -110,7 +110,7 @@ namespace PartnerBot.Discord.Commands.Core
             HashSet<string>? tagUpdate = null;
             do
             {
-                var requirementsEmbed = GetRequiermentsEmbed(partner, channel);
+                var requirementsEmbed = await GetRequiermentsEmbed(partner, channel);
 
                 if (requirementsMessage is null)
                     requirementsMessage = await ctx.RespondAsync(requirementsEmbed);
@@ -434,7 +434,7 @@ namespace PartnerBot.Discord.Commands.Core
                         var bannerRes = await GetNewPartnerBanner(statusMessage, statusEmbed);
                         if (bannerRes.Item3) return;
 
-                        if(bannerRes.Item1 is null)
+                        if (bannerRes.Item1 is null)
                         {
                             await RespondError(bannerRes.Item2 ?? "An unknown error occoured.");
                             return;
@@ -448,7 +448,7 @@ namespace PartnerBot.Discord.Commands.Core
                         var colorRes = await GetCustomEmbedColorAsync(partner, statusMessage, statusEmbed);
                         if (colorRes.Item3) return;
 
-                        if(colorRes.Item1 is null)
+                        if (colorRes.Item1 is null)
                         {
                             await RespondError(colorRes.Item2 ?? "An unknown error occoured.");
                             return;
@@ -469,6 +469,64 @@ namespace PartnerBot.Discord.Commands.Core
                         }
 
                         tagUpdate = tagRes.Item1;
+                        break;
+
+                    case "vanity":
+                        if (partner.DonorRank >= 1)
+                        {
+                            if (partner.VanityInvite is not null)
+                            {
+                                partner.VanityInvite = null;
+
+                                statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                            .WithDescription($"{BASE_MESSAGE}\n\n" +
+                                            $"**Vanity Invite disabled!**")
+                                            .WithColor(Color_PartnerBotMagenta);
+
+                                errored = true;
+                            }
+                            else
+                            {
+                                DiscordInvite? vanity;
+                                try
+                                {
+                                    vanity = await Context.Guild.GetVanityInviteAsync();
+                                }
+                                catch { vanity = null; }
+
+                                if (vanity is not null)
+                                {
+                                    partner.VanityInvite = vanity.Code;
+
+                                    statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                            .WithDescription($"{BASE_MESSAGE}\n\n" +
+                                            $"**Vanity Invite enabled!**")
+                                            .WithColor(Color_PartnerBotMagenta);
+
+                                    errored = true;
+                                }
+                                else
+                                {
+                                    statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                            .WithDescription($"{BASE_MESSAGE}\n\n" +
+                                            $"**You do not have a vanity invite for your server!**")
+                                            .WithColor(DiscordColor.DarkRed);
+
+                                    errored = true;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                        .WithDescription($"{BASE_MESSAGE}\n\n" +
+                                        $"**You do not have a high enough donor rank to use vanity invites." +
+                                        $" Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true)" +
+                                        $" to use your vanity invite!**")
+                                        .WithColor(DiscordColor.DarkRed);
+
+                            errored = true;
+                        }
                         break;
 
                     default:
@@ -510,7 +568,7 @@ namespace PartnerBot.Discord.Commands.Core
             await statusMessage.ModifyAsync(statusEmbed.Build());
         }
 
-        public DiscordEmbedBuilder GetRequiermentsEmbed(Partner partner, DiscordChannel? channel = null)
+        public async Task<DiscordEmbedBuilder> GetRequiermentsEmbed(Partner partner, DiscordChannel? channel = null)
         {
             // Required: message, channel
             // Optional: banner, embed, links
@@ -525,6 +583,17 @@ namespace PartnerBot.Discord.Commands.Core
             bool embedAllowed = partner.DonorRank >= 3;
             bool defaultColor = partner.BaseColor.Value == DiscordColor.Gray.Value;
             bool usedTags = partner.Tags.Count >= TAG_LIMIT;
+            bool usedVanity = partner.VanityInvite is not null;
+
+            DiscordInvite? vanity;
+            try
+            {
+                vanity = await Context.Guild.GetVanityInviteAsync();
+            }
+            catch { vanity = null; }
+
+            bool hasVanity =  vanity is not null;
+            bool canUseVanity = partner.DonorRank >= 1;
 
             var requirementsEmbed = new DiscordEmbedBuilder()
                 .WithColor(Color_PartnerBotMagenta)
@@ -557,8 +626,16 @@ namespace PartnerBot.Discord.Commands.Core
                         : $"You have your custom color set to `R{partner.BaseColor.R}, G{partner.BaseColor.G}, B{partner.BaseColor.B}`! Change it with `color`.", true)
                 .AddField($"{(usedTags ? Check.GetDiscordName() : Cross.GetDiscordName())} Tags",
                     usedTags ? $"You have used all {TAG_LIMIT} of your tags. Edit your current tags with `tags`!"
-                        : $"You have used {partner.Tags.Count} of your {TAG_LIMIT} avalible tags. Add some with `tags`!", true);
-            
+                        : $"You have used {partner.Tags.Count} of your {TAG_LIMIT} avalible tags. Add some with `tags`!", true)
+                .AddField($"{(canUseVanity ? (hasVanity ? (usedVanity ? Check.GetDiscordName() : Cross.GetDiscordName()) : Check.GetDiscordName()) : Lock.GetDiscordName())} Vanity Invite",
+                canUseVanity ?
+                    (hasVanity ? 
+                        (usedVanity ? "You have enabled your vanity URL! Want to disable it? Use `vanity`!" : "Want to use your vanity URL? Use `vanity`!")
+                    : "You don't have a vanity URL for your server!")
+                : $"You can't use a vanity URL! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to use your servers vanity URL with Partner Bot" +
+                $" (You must have a vanity URL from Discord to use this option).", true);
+
+
             return requirementsEmbed;
         }
     }

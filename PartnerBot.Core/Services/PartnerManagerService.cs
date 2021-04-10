@@ -95,8 +95,15 @@ namespace PartnerBot.Core.Services
             if (data.Message is not null)
                 p.Message = data.Message;
 
+            bool donorCheck = false;
             if (data.DonorRank is not null)
-                p.DonorRank = data.DonorRank.Value;
+            {
+                if (p.DonorRank != data.DonorRank.Value)
+                {
+                    p.DonorRank = data.DonorRank.Value;
+                    donorCheck = true;
+                }
+            }
 
             if (data.Banner is not null)
                 p.Banner = data.Banner;
@@ -135,6 +142,9 @@ namespace PartnerBot.Core.Services
             if (data.MessageEmbeds is not null)
                 p.MessageEmbeds = data.MessageEmbeds;
 
+            if (data.VanityInvite.Item1)
+                p.VanityInvite = data.VanityInvite.Item2;
+
             if (data.Active is not null)
             {
                 if (data.Active.Value != p.Active)
@@ -161,13 +171,14 @@ namespace PartnerBot.Core.Services
                 }
                 else
                 {
-
+                    bool inviteUpdate = p.VanityInvite is null;
                     DiscordWebhook hook;
-                    DiscordInvite invite;
+                    DiscordInvite? invite = null;
                     if (p.WebhookId == 0)
                     {
                         hook = await _rest.CreateWebhookAsync(data.ChannelId.Value, "Partner Bot Message Sender", reason: "Partner Bot Sender Webhook Update");
-                        invite = await _rest.CreateChannelInviteAsync(data.ChannelId.Value, 0, 0, false, false, "Partner Bot Inivte");
+                        if(inviteUpdate)
+                            invite = await _rest.CreateChannelInviteAsync(data.ChannelId.Value, 0, 0, false, false, "Partner Bot Inivte");
                     }
                     else
                     {
@@ -175,14 +186,16 @@ namespace PartnerBot.Core.Services
                         try
                         {
                             hook = await _rest.GetWebhookAsync(p.WebhookId);
-                            invite = await _rest.CreateChannelInviteAsync(data.ChannelId.Value, 0, 0, false, false, "Partner Bot Inivte");
+                            if (inviteUpdate)
+                                invite = await _rest.CreateChannelInviteAsync(data.ChannelId.Value, 0, 0, false, false, "Partner Bot Inivte");
 
                             updateWebhook = hook.ChannelId != data.ChannelId;
                         }
                         catch (NotFoundException)
                         {
                             hook = await _rest.CreateWebhookAsync(data.ChannelId.Value, "Partner Bot Message Sender", reason: "Partner Bot Sender Webhook Update");
-                            invite = await _rest.CreateChannelInviteAsync(data.ChannelId.Value, 0, 0, false, false, "Partner Bot Inivte");
+                            if (inviteUpdate)
+                                invite = await _rest.CreateChannelInviteAsync(data.ChannelId.Value, 0, 0, false, false, "Partner Bot Inivte");
                         }
                         catch (Exception ex)
                         {
@@ -195,9 +208,13 @@ namespace PartnerBot.Core.Services
 
                     p.WebhookId = hook.Id;
                     p.WebhookToken = hook.Token;
-                    p.Invite = invite.Code;
+                    if(invite is not null)
+                        p.Invite = invite.Code;
                 }
             }
+
+            if (donorCheck)
+                p.ModifyToDonorRank();
 
             _database.Update(p);
             await _database.SaveChangesAsync();

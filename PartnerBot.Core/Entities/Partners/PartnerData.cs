@@ -31,7 +31,8 @@ namespace PartnerBot.Core.Entities
 
             var hook = new DiscordWebhookBuilder()
                 .WithContent($"{Match.Message}\n\n" +
-                $"https://discord.gg/{Match.Invite}")
+                $"https://discord.gg/" +
+                $"{(Match.VanityInvite is not null ? Match.VanityInvite : Match.Invite)}")
                 .AddEmbed(new DiscordEmbedBuilder()
                     .WithColor(DiscordColor.Gray)
                     .WithTitle("Partner Bot Advertisment")

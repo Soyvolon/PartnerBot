@@ -25,6 +25,7 @@ namespace PartnerBot.Core.Entities
         public int? LinksUsed { get; set; } = null;
         public DiscordColor? BaseColor { get; set; } = null;
         public List<DiscordEmbedBuilder>? MessageEmbeds { get; set; } = null;
+        public (bool, string?) VanityInvite { get; set; } = (false, null);
 
         public static PartnerUpdater BuildFromPartner(Partner p)
         {
@@ -44,7 +45,8 @@ namespace PartnerBot.Core.Entities
                 BaseColor = p.BaseColor,
                 MessageEmbeds = p.MessageEmbeds,
                 GuildName = p.GuildName,
-                GuildIcon = p.GuildIcon
+                GuildIcon = p.GuildIcon,
+                VanityInvite = (true, p.VanityInvite)
             };
         }
     }

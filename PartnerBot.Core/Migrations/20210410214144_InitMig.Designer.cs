@@ -9,8 +9,8 @@ using PartnerBot.Core.Database;
 namespace PartnerBot.Core.Migrations
 {
     [DbContext(typeof(PartnerDatabaseContext))]
-    [Migration("20210407182424_Init")]
-    partial class Init
+    [Migration("20210410214144_InitMig")]
+    partial class InitMig
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -107,6 +107,9 @@ namespace PartnerBot.Core.Migrations
 
                     b.Property<int>("UserCount")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("VanityInvite")
+                        .HasColumnType("TEXT");
 
                     b.Property<ulong>("WebhookId")
                         .HasColumnType("INTEGER");

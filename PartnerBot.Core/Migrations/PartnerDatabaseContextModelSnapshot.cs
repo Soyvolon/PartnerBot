@@ -106,6 +106,9 @@ namespace PartnerBot.Core.Migrations
                     b.Property<int>("UserCount")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("VanityInvite")
+                        .HasColumnType("TEXT");
+
                     b.Property<ulong>("WebhookId")
                         .HasColumnType("INTEGER");
 

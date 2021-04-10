@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace PartnerBot.Core.Migrations
 {
-    public partial class Init : Migration
+    public partial class InitMig : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -56,7 +56,8 @@ namespace PartnerBot.Core.Migrations
                     UserCount = table.Column<int>(type: "INTEGER", nullable: false),
                     LinksUsed = table.Column<int>(type: "INTEGER", nullable: false),
                     BaseColor = table.Column<int>(type: "INTEGER", nullable: false),
-                    MessageEmbeds = table.Column<string>(type: "TEXT", nullable: false)
+                    MessageEmbeds = table.Column<string>(type: "TEXT", nullable: false),
+                    VanityInvite = table.Column<string>(type: "TEXT", nullable: true)
                 },
                 constraints: table =>
                 {
