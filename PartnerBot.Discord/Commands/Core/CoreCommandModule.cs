@@ -606,9 +606,9 @@ namespace PartnerBot.Discord.Commands.Core
                 }
             } while (!valid);
 
-            statusEmbed.Fields[currentField].Inline = inline;
+            displayEmbed.Fields[currentField].Inline = inline;
 
-            await statusMessage.ModifyAsync(statusEmbed.Build());
+            await displayMessage.ModifyAsync(displayEmbed.Build());
 
             return true;
         }

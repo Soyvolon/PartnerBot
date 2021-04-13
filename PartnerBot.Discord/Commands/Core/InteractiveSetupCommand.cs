@@ -206,11 +206,11 @@ namespace PartnerBot.Discord.Commands.Core
 
                             errored = true;
                         }
-                        else if (partner.MessageEmbeds.Count <= 0)
+                        else if (partner.MessageEmbeds.Count >= DonorService.MAX_EMBEDS)
                         {
                             statusEmbed.WithTitle("Partner Bot Setup - Main")
                                 .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**There are no embeds to edit!**")
+                                $"**You have used up all your embeds! You can edit a exsisting one, or remove an old one and add a new one.**")
                                 .WithColor(DiscordColor.DarkRed);
 
                             errored = true;
@@ -226,7 +226,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                             var editStart = await GetFollowupMessageAsync(interact);
 
-                            if (editStart.Item2) return;
+                            if (!editStart.Item2) return;
 
                             var startRes = editStart.Item1;
 
@@ -268,11 +268,11 @@ namespace PartnerBot.Discord.Commands.Core
 
                             errored = true;
                         }
-                        else if (partner.MessageEmbeds.Count < DonorService.MAX_EMBEDS)
+                        else if (partner.MessageEmbeds.Count <= 0)
                         {
                             statusEmbed.WithTitle("Partner Bot Setup - Main")
                                 .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**You have used up all your embeds! You can edit a exsisting one, or remove an old one and add a new one.**")
+                                $"**There are no embeds to edit!**")
                                 .WithColor(DiscordColor.DarkRed);
 
                             errored = true;
@@ -295,7 +295,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                             var addStart = await GetFollowupMessageAsync(interact);
 
-                            if (addStart.Item2) return;
+                            if (!addStart.Item2) return;
 
                             var startRes = addStart.Item1;
 
@@ -359,74 +359,53 @@ namespace PartnerBot.Discord.Commands.Core
                         }
                         else
                         {
-                            if (partner.DonorRank < 3)
+                            List<string> dat = new();
+                            int i = 0;
+                            foreach (var e in partner.MessageEmbeds)
+                                dat.Add($"[{i++}] {e.Title}");
+
+                            statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                .WithDescription($"{BASE_MESSAGE}\n\n" +
+                                $"**Please enter the index of the emebed you would like to remove:**\n" +
+                                $"*[index] title*\n\n" +
+                                $"{string.Join("\n", dat)}")
+                                .WithColor(Color_PartnerBotMagenta);
+
+                            await statusMessage.ModifyAsync(statusEmbed.Build());
+
+                            var addStart = await GetFollowupMessageAsync(interact);
+
+                            if (!addStart.Item2) return;
+
+                            var startRes = addStart.Item1;
+
+                            var indexRaw = startRes.Result.Content.Trim();
+
+                            if (!int.TryParse(indexRaw, out int index))
                             {
                                 statusEmbed.WithTitle("Partner Bot Setup - Main")
                                     .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                    $"**You need to be a Quadruple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**")
+                                    $"**The value provided was not a number! Returning to main menu.**")
                                     .WithColor(DiscordColor.DarkRed);
 
                                 errored = true;
                             }
-                            else if (partner.MessageEmbeds.Count < DonorService.MAX_EMBEDS)
+                            else if (index > partner.MessageEmbeds.Count || index < 0)
                             {
                                 statusEmbed.WithTitle("Partner Bot Setup - Main")
                                     .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                    $"**You have used up all your embeds! You can edit a exsisting one, or remove an old one and add a new one.**")
+                                    $"**The value provided was not a valid embed! Returning to main menu.**")
                                     .WithColor(DiscordColor.DarkRed);
 
                                 errored = true;
                             }
                             else
                             {
-                                List<string> dat = new();
-                                int i = 0;
-                                foreach (var e in partner.MessageEmbeds)
-                                    dat.Add($"[{i++}] {e.Title}");
+                                partner.MessageEmbeds.RemoveAt(index);
 
                                 statusEmbed.WithTitle("Partner Bot Setup - Main")
                                     .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                    $"**Please enter the index of the emebed you would like to remove:**\n" +
-                                    $"*[index] title*\n\n" +
-                                    $"{string.Join("\n", dat)}")
-                                    .WithColor(Color_PartnerBotMagenta);
-
-                                await statusMessage.ModifyAsync(statusEmbed.Build());
-
-                                var addStart = await GetFollowupMessageAsync(interact);
-
-                                if (addStart.Item2) return;
-
-                                var startRes = addStart.Item1;
-
-                                var indexRaw = startRes.Result.Content.Trim();
-
-                                if (!int.TryParse(indexRaw, out int index))
-                                {
-                                    statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                        .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                        $"**The value provided was not a number! Returning to main menu.**")
-                                        .WithColor(DiscordColor.DarkRed);
-
-                                    errored = true;
-                                }
-                                else if (index > partner.MessageEmbeds.Count || index < 0)
-                                {
-                                    statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                        .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                        $"**The value provided was not a valid embed! Returning to main menu.**")
-                                        .WithColor(DiscordColor.DarkRed);
-
-                                    errored = true;
-                                }
-                                else
-                                {
-                                    partner.MessageEmbeds.RemoveAt(index);
-
-                                    statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                        .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                        $"**Embed removed.**");
-                                }
+                                    $"**Embed removed.**");
                             }
                         }
                         break;

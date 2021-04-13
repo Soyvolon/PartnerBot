@@ -17,6 +17,8 @@ namespace PartnerBot.Core.Utils
         {
             List<string> data = new();
 
+            if (string.IsNullOrWhiteSpace(content)) return data;
+
             var body = content.Split(" \n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
 
             foreach(var part in body)
