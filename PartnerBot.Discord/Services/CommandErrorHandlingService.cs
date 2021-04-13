@@ -12,7 +12,10 @@ namespace PartnerBot.Discord.Services
     {
         public async Task RespondCommandNotFound(DiscordChannel c, string prefix)
         {
-            throw new NotImplementedException();
+            await c.SendMessageAsync(new DiscordEmbedBuilder()
+                .WithDescription($"Command Not Found. Use `{prefix}help` to see a list of commands. Or, take a look at our [Documentation]() for more" +
+                $" information!")
+                .WithColor(DiscordColor.DarkRed));
         }
 
         public async Task Client_CommandErrored(CommandsNextExtension sender, CommandErrorEventArgs e)
@@ -29,7 +32,7 @@ namespace PartnerBot.Discord.Services
 
         public Task Client_CommandExecuted(CommandsNextExtension sender, CommandExecutionEventArgs e)
         {
-            sender.Client.Logger.LogDebug(DiscordBot.Event_ClientLogger, $"Command {e.Command.Name} executed by {e.Context.User.Username} on {e.Context.Guild?.Name ?? ""}");
+            sender.Client.Logger.LogDebug(DiscordBot.Event_ClientLogger, $"Command {e.Command.Name} executed by {e.Context.User.Username} on {e.Context?.Guild?.Name ?? ""}");
             return Task.CompletedTask;
         }
     }
