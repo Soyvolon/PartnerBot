@@ -15,6 +15,7 @@ using PartnerBot.Core.Database;
 using PartnerBot.Core.Entities;
 using PartnerBot.Core.Entities.Moderation;
 using PartnerBot.Core.Services;
+using PartnerBot.Core.Utils;
 using PartnerBot.Discord.Commands.Conditions;
 
 namespace PartnerBot.Discord.Commands.Core
@@ -167,7 +168,7 @@ namespace PartnerBot.Discord.Commands.Core
                         break;
 
                     case "message":
-                        var messageRes = await GetNewMessage(partner, statusMessage, statusEmbed);
+                        var messageRes = await GetNewMessage(partner, statusMessage, statusEmbed, partner.Message.GetUrls().Count);
                         if (messageRes.Item3) return;
 
                         if (messageRes.Item1 is null)

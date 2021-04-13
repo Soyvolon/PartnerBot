@@ -13,6 +13,8 @@ using PartnerBot.Core.Database;
 using PartnerBot.Core.Entities;
 using PartnerBot.Core.Utils;
 
+using Soyvolon.Utilities.Extensions.IList;
+
 namespace PartnerBot.Core.Services
 {
     public class PartnerSenderService
@@ -38,7 +40,7 @@ namespace PartnerBot.Core.Services
         {
             _logger.LogInformation($"Started partner run: {senderArgs}");
 
-            (List<Partner>, List<Partner>) active;
+            (List<Partner>, List<Partner>, List<Partner>) active;
             if (senderArgs.DevelopmentStressTest)
             {
                 // get the development stress test data set ...
@@ -50,13 +52,13 @@ namespace PartnerBot.Core.Services
                 active = await GetActivePartners(senderArgs);
             }
 
-            _logger.LogInformation($"Partner sets received. Run: {active.Item1.Count} | Full: {active.Item2.Count}");
+            _logger.LogInformation($"Partner sets received. Full: {active.Item1.Count} | Run: {active.Item2.Count} | Extra: {active.Item3.Count}");
 
             if (active.Item1.Count <= 0 || active.Item2.Count <= 0)
                 return;
 
             // ... pair up active partners and queue them ...
-            await QueuePartnerData(active.Item1, active.Item2, senderArgs);
+            await QueuePartnerData(active.Item1, active.Item2, active.Item3, senderArgs);
 
             _logger.LogInformation($"Partner data queued. Queue Count: {PartnerDataQueue.Count}");
 
@@ -74,10 +76,11 @@ namespace PartnerBot.Core.Services
             }
         }
 
-        private async Task<(List<Partner>, List<Partner>)> GetActivePartners(PartnerSenderArguments senderArgs)
+        private async Task<(List<Partner>, List<Partner>, List<Partner>)> GetActivePartners(PartnerSenderArguments senderArgs)
         {
             List<Partner> baseSet = new();
             List<Partner> donorSet = new();
+            List<Partner> extarSet = new();
             await _database.Partners.AsNoTracking().ForEachAsync(x =>
             {
                 if (x.Active)
@@ -86,16 +89,19 @@ namespace PartnerBot.Core.Services
 
                     if (x.DonorRank >= senderArgs.DonorRun)
                         donorSet.Add(x);
+
+                    if (x.DonorRank >= 2)
+                        extarSet.Add(x);
                 }
             });
 
-            return (baseSet, donorSet);
+            return (baseSet, donorSet, extarSet);
         }
 
         #region Partner Matching
 
         // TODO: check for pairs that don't find a match, filter then into the fullset and grabe a random partner without knowing its final value.
-        private async Task QueuePartnerData(List<Partner> runningPartners, List<Partner> fullSet, PartnerSenderArguments senderArguments)
+        private async Task QueuePartnerData(List<Partner> runningPartners, List<Partner> fullSet, List<Partner> extraSet, PartnerSenderArguments senderArguments)
         {
             // ... then build the task storage for our closeness tasks ...
             List<Task<(ulong, List<(float, Partner)>)>> MatchClosenessTasks = new();
@@ -142,8 +148,8 @@ namespace PartnerBot.Core.Services
                     if (MatchedSet.Contains(i.Item2.GuildId)) continue;
 
                     // ... if none of those are true, we have a match, so lets save it ...
-                    var homeMatch = p.BuildData(i.Item2, false);
-                    var awayMatch = i.Item2.BuildData(p, false);
+                    var homeMatch = p.BuildData(i.Item2, null);
+                    var awayMatch = i.Item2.BuildData(p, null);
 
                     // ... then we queue these matches ...
                     PartnerDataQueue.Enqueue(homeMatch);
@@ -172,15 +178,27 @@ namespace PartnerBot.Core.Services
                 // looks like no good match was found, go to next partner.
                 if (away is null) continue;
 
-                var homeMatchAlt = p.BuildData(away, false);
+                var homeMatchAlt = p.BuildData(away, null);
 
-                var extra = false;
+                Partner? extra = null;
 
                 if (away.DonorRank < senderArguments.DonorRun)
-                    extra = true;
+                {
+                    int breakout = 0;
+
+                    while(extra is null && breakout++ < 10)
+                    {
+                        var temp = extraSet.GetRandom();
+
+                        if (away.OwnerId != temp.OwnerId)
+                        {
+                            extra = temp;
+                        }    
+                    }
+                }
 
                 if (MatchedSet.Contains(away.GuildId))
-                    extra = true;
+                    extra = null;
 
                 var awayMatchAlt = away.BuildData(p, extra);
 
@@ -309,7 +327,7 @@ namespace PartnerBot.Core.Services
         #endregion
 
         #region Development Dataset
-        private async Task<(List<Partner>, List<Partner>)> GetDevelopmentStressTestDataset(PartnerSenderArguments senderArguments)
+        private async Task<(List<Partner>, List<Partner>, List<Partner>)> GetDevelopmentStressTestDataset(PartnerSenderArguments senderArguments)
         {
             var data = await DevelopmentStressTestDataManager.GetDataAsync();
 
@@ -351,7 +369,7 @@ namespace PartnerBot.Core.Services
 
             List<Partner> donorSet = new(fullSet.Where(x => x.DonorRank >= senderArguments.DonorRun));
 
-            return (donorSet, fullSet);
+            return (donorSet, fullSet, fullSet);
         }
         #endregion
     }

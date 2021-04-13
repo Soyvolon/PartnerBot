@@ -8,9 +8,9 @@ namespace PartnerBot.Core.Entities
     public class PartnerData : Partner
     {
         public Partner Match { get; internal set; }
-        public bool ExtraMessage { get; internal set; }
+        public Partner? ExtraMessage { get; internal set; }
 
-        public PartnerData(Partner self, Partner match, bool extra)
+        public PartnerData(Partner self, Partner match, Partner? extra = null)
         {
             foreach (var prop in self.GetType().GetProperties())
             {
@@ -29,10 +29,13 @@ namespace PartnerBot.Core.Entities
                 return;
             }
 
+            bool vanity = Match.VanityInvite is not null && Match.DonorRank >= 1;
+            bool attachEmbeds = Match.DonorRank >= 3;
+
             var hook = new DiscordWebhookBuilder()
                 .WithContent($"{Match.Message}\n\n" +
                 $"https://discord.gg/" +
-                $"{(Match.VanityInvite is not null ? Match.VanityInvite : Match.Invite)}")
+                $"{(vanity ? Match.VanityInvite : Match.Invite)}")
                 .AddEmbed(new DiscordEmbedBuilder()
                     .WithColor(DiscordColor.Gray)
                     .WithTitle("Partner Bot Advertisment")
@@ -40,10 +43,21 @@ namespace PartnerBot.Core.Entities
                     .WithImageUrl(Match.Banner))
                 .WithUsername($"{Match.GuildName} | Partner Bot");
 
+            if(attachEmbeds)
+                foreach(var e in Match.MessageEmbeds)
+                    hook.AddEmbed(e);
+
             if (!string.IsNullOrWhiteSpace(Match.GuildIcon))
                 hook.WithAvatarUrl(Match.GuildIcon);
 
             await rest.ExecuteWebhookAsync(WebhookId, WebhookToken, hook);
+
+            if(ExtraMessage is not null)
+            {
+                var eDat = new PartnerData(this, ExtraMessage);
+
+                await eDat.ExecuteAsync(rest, senderArguments);
+            }
         }
 
         private async Task ExecuteStressTestMessage(DiscordRestClient rest)

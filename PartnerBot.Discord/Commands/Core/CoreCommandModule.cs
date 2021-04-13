@@ -242,7 +242,8 @@ namespace PartnerBot.Discord.Commands.Core
         }
 
         // TODO: Check for message size limits that leave space for the invite link.
-        protected async Task<(string?, string?, bool)> GetNewMessage(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
+        protected async Task<(string?, string?, bool)> GetNewMessage(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed,
+            int linksReset)
         {
             var interact = Context.Client.GetInteractivity();
 
@@ -251,6 +252,8 @@ namespace PartnerBot.Discord.Commands.Core
                 .WithDescription("Welcome to the message setter. Please enter your new message.")
                 .WithColor(DiscordColor.Aquamarine)
                 .Build());
+
+            p.LinksUsed -= linksReset;
 
             bool first = true;
             DiscordMessage? pMessage = null;
@@ -480,7 +483,7 @@ namespace PartnerBot.Discord.Commands.Core
                             return (null, null, true);
                         break;
                     case "edit-desc":
-                        var newDesc = await GetNewMessage(p, statusMessage, statusEmbed);
+                        var newDesc = await GetNewMessage(p, statusMessage, statusEmbed, displayEmbed.Description.GetUrls().Count);
                         if (newDesc.Item3) return (null, null, true);
                         if (newDesc.Item1 is null) return (null, newDesc.Item2, newDesc.Item3);
 
@@ -550,7 +553,7 @@ namespace PartnerBot.Discord.Commands.Core
 
             if (title is null) return false;
 
-            var pmsgResult = await GetNewMessage(p, statusMessage, statusEmbed);
+            var pmsgResult = await GetNewMessage(p, statusMessage, statusEmbed, 0);
 
             if (pmsgResult.Item3) return false;
             if(pmsgResult.Item1 is null)
@@ -747,7 +750,7 @@ namespace PartnerBot.Discord.Commands.Core
                         newTitle = await GetFieldTitle(interact, statusMessage, statusEmbed);
                         break;
                     case "message":
-                        var descRes = await GetNewMessage(p, statusMessage, statusEmbed);
+                        var descRes = await GetNewMessage(p, statusMessage, statusEmbed, displayEmbed.Fields[field].Value.GetUrls().Count);
 
                         if (descRes.Item3) return false;
 
@@ -775,7 +778,7 @@ namespace PartnerBot.Discord.Commands.Core
             if (newDesc is not null)
                 displayEmbed.Fields[field].Value = newDesc;
             if (newTitle is not null)
-                displayEmbed.Fields[field].Value = newTitle;
+                displayEmbed.Fields[field].Name = newTitle;
             if (invertInline)
                 displayEmbed.Fields[field].Inline = !displayEmbed.Fields[field].Inline;
 

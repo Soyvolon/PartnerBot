@@ -68,7 +68,7 @@ namespace PartnerBot.Discord.Commands.Core
                 {
                     await RespondSuccess($"Partner Bot is now setup and toggled on! A test message has been sent to {channel.Mention}");
 
-                    var data = res.Item1.BuildData(res.Item1, false);
+                    var data = res.Item1.BuildData(res.Item1, null);
 
                     await data.ExecuteAsync(_rest, new());
                 }

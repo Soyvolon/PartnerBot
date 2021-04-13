@@ -5,6 +5,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 using DSharpPlus.Entities;
 
+using PartnerBot.Core.Utils;
+
 namespace PartnerBot.Core.Entities
 {
     public class Partner
@@ -31,7 +33,7 @@ namespace PartnerBot.Core.Entities
 
         public Partner() { }
 
-        public PartnerData BuildData(Partner match, bool extra)
+        public PartnerData BuildData(Partner match, Partner? extra)
         {
             var data = new PartnerData(this, match, extra);
 
@@ -51,15 +53,62 @@ namespace PartnerBot.Core.Entities
 
         public void ModifyToDonorRank()
         {
-            if (LinksUsed > DonorRank)
-                RemoveExtraLinks();
-
-
+            RemoveExtraLinks();
         }
 
         private void RemoveExtraLinks()
         {
+            int links = 0;
 
+            var messageUrls = Message.GetUrls();
+
+            foreach(var l in messageUrls)
+            {
+                if(++links > DonorRank)
+                {
+                    Message.Replace(l, string.Empty);
+                }
+            }
+
+            foreach(var embed in MessageEmbeds)
+            {
+                var eMsgLinks = embed.Description.GetUrls();
+
+                foreach (var l in eMsgLinks)
+                {
+                    if (++links > DonorRank)
+                    {
+                        embed.Description.Replace(l, string.Empty);
+                    }
+                }
+
+                foreach(var field in embed.Fields)
+                {
+                    var fLinks = field.Value.GetUrls();
+
+                    foreach (var l in fLinks)
+                    {
+                        if (++links > DonorRank)
+                        {
+                            field.Value.Replace(l, string.Empty);
+                        }
+                    }
+
+                    var titleLinks = field.Name.GetUrls();
+
+                    foreach (var l in titleLinks)
+                    {
+                        field.Name.Replace(l, string.Empty);
+                    }
+                }
+
+                var tLinks = embed.Title.GetUrls();
+
+                foreach (var l in tLinks)
+                {
+                    embed.Title.Replace(l, string.Empty);
+                }
+            }
         }
     }
 }
