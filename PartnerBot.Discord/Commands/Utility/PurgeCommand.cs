@@ -59,7 +59,7 @@ namespace PartnerBot.Discord.Commands.Utility
                     db.Remove(guild);
 
                     await db.SaveChangesAsync();
-
+                    
                     await ctx.Guild.LeaveAsync();
                 }
                 else
