@@ -36,7 +36,7 @@ namespace PartnerBot.Discord.Commands.Utility
             var interact = ctx.Client.GetInteractivity();
 
             await ctx.RespondAsync("**Purging your data will delete all saved partner information then remove the bot from your server. Are you sure" +
-                " you want to proocede? Type `yes` to purge data. Type anything else to cancle this operation.**");
+                " you want to proceed? Type `yes` to purge data. Type anything else to cancel this operation.**");
 
             var res = await interact.WaitForMessageAsync(x => x.Author.Id == ctx.User.Id);
 

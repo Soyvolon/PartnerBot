@@ -31,7 +31,7 @@ namespace PartnerBot.Discord.Commands.Utility
         {
             if(string.IsNullOrWhiteSpace(newPrefix))
             {
-                await RespondError("The new prefix cannon't be null or white space.");
+                await RespondError("The new prefix cannot be null or white space.");
                 return;
             }
             

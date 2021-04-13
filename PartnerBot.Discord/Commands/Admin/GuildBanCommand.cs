@@ -31,7 +31,7 @@ namespace PartnerBot.Discord.Commands.Admin
         {
             var ban = await _ban.BanGuildAsync(guildId, reason);
 
-            await ctx.RespondAsync($"Guild {ban.GuildId} banned succesfully.");
+            await ctx.RespondAsync($"Guild {ban.GuildId} banned successfully.");
 
             await _ban.FinalizeBanAsync(ban.GuildId, ban.Reason);
 

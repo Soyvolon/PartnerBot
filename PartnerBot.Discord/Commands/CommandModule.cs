@@ -48,7 +48,7 @@ namespace PartnerBot.Discord.Commands
                 .WithColor(DiscordColor.Green);
         }
 
-        public async Task InteractTimeout(string message = "Interactivty Timed Out.")
+        public async Task InteractTimeout(string message = "Interactivity Timed Out.")
         {
             var embed = ErrorBase()
                 .WithDescription(message);

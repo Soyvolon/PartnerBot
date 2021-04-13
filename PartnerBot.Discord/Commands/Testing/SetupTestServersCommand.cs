@@ -217,7 +217,7 @@ namespace PartnerBot.Discord.Commands.Testing
             string data;
 
             if (cleanup)
-                data = "**Cleaing Old Channels...**";
+                data = "**Cleaning Old Channels...**";
             else
             {
                 data = "**Adding Channels:**\n" +

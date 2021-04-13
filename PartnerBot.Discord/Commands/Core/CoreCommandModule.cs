@@ -61,7 +61,7 @@ namespace PartnerBot.Discord.Commands.Core
             await statusMessage.ModifyAsync(statusEmbed
                 .WithTitle("Partner Bot Setup - Channel")
                 .WithDescription("Please select a channel that you would like to receive partner messages in. This channel will" +
-                " receive any messages from other servers when your advertisment is sent out.\n\n" +
+                " receive any messages from other servers when your advertisement is sent out.\n\n" +
                 "The channel requires all overwrites in that channel have the following two permissions:" +
                 " `View Channel` and `Read Message History`")
                 .WithColor(color)
@@ -85,7 +85,7 @@ namespace PartnerBot.Discord.Commands.Core
                 else if(res.Result.MentionedChannels.Count <= 0)
                 {
                     await statusMessage.ModifyAsync(statusEmbed
-                        .WithDescription("No channel was seleceted. Please mention a channel or type `exit` to quit.")
+                        .WithDescription("No channel was selected. Please mention a channel or type `exit` to quit.")
                         .WithColor(DiscordColor.DarkRed)
                         .Build());
                 }
@@ -235,7 +235,7 @@ namespace PartnerBot.Discord.Commands.Core
             }
             catch (Exception ex)
             {
-                return (false, $"Some other error occoured: {ex.Message}");
+                return (false, $"Some other error occurred: {ex.Message}");
             }
 
             return (true, null);
@@ -268,15 +268,15 @@ namespace PartnerBot.Discord.Commands.Core
 
                 var msg = res.Result.Content;
 
-                var trimed = msg.ToLower().Trim();
+                var trimmed = msg.ToLower().Trim();
 
-                if(trimed.Equals("exit"))
+                if(trimmed.Equals("exit"))
                 {
                     await RespondError("Aborting...");
                     return (null, null, true);
                 }
                 else if (!first 
-                    && trimed.Equals("save"))
+                    && trimmed.Equals("save"))
                 {
                     if (!string.IsNullOrWhiteSpace(message))
                         break;
@@ -356,14 +356,14 @@ namespace PartnerBot.Discord.Commands.Core
 
                 var res = response.Item1;
 
-                var trimed = res.Result.Content.ToLower().Trim();
+                var trimmed = res.Result.Content.ToLower().Trim();
 
-                if (trimed.Equals("exit"))
+                if (trimmed.Equals("exit"))
                 {
                     await RespondError("Aborting...");
                     return (null, null, true);
                 }
-                else if (!first && trimed.Equals("save"))
+                else if (!first && trimmed.Equals("save"))
                 {
                     if(bannerUrl is not null)
                         break;
@@ -431,7 +431,7 @@ namespace PartnerBot.Discord.Commands.Core
             await statusMessage.ModifyAsync(statusEmbed
                 .WithTitle("Partner Bot Setup - Custom Embed")
                 .WithDescription("Welcome to the custom embed builder. Please select what modifications you want to make:")
-                .AddField("Edtior Options", "`add-field`, `remove-field`, `edit-field`, `edit-desc`, `edit-title`, `edit-color`, `edit-image`," +
+                .AddField("Editor Options", "`add-field`, `remove-field`, `edit-field`, `edit-desc`, `edit-title`, `edit-color`, `edit-image`," +
                 " `save` (saves any changes and exits this editor)")
                 .WithColor(DiscordColor.Gold)
                 .Build());
@@ -456,19 +456,19 @@ namespace PartnerBot.Discord.Commands.Core
 
                 var res = response.Item1;
 
-                var trimed = res.Result.Content.ToLower().Trim();
+                var trimmed = res.Result.Content.ToLower().Trim();
 
-                if (trimed.Equals("exit"))
+                if (trimmed.Equals("exit"))
                 {
                     await RespondError("Aborting...");
                     return (null, null, true);
                 }
-                else if (!first && trimed.Equals("save"))
+                else if (!first && trimmed.Equals("save"))
                 {
                     break;
                 }
 
-                switch(trimed)
+                switch(trimmed)
                 {
                     case "add-field":
                         if (!await AddCustomEmbedField(p, interact, statusMessage, statusEmbed, displayMessage, displayEmbed))
@@ -732,19 +732,19 @@ namespace PartnerBot.Discord.Commands.Core
 
                 var res = response.Item1;
 
-                var trimed = res.Result.Content.ToLower().Trim();
+                var trimmed = res.Result.Content.ToLower().Trim();
 
-                if (trimed.Equals("exit"))
+                if (trimmed.Equals("exit"))
                 {
                     await RespondError("Aborting field editor...");
                     return true;
                 }
-                else if (!first && trimed.Equals("save"))
+                else if (!first && trimmed.Equals("save"))
                 {
                     break;
                 }
 
-                switch (trimed)
+                switch (trimmed)
                 {
                     case "title":
                         newTitle = await GetFieldTitle(interact, statusMessage, statusEmbed);
@@ -1035,7 +1035,7 @@ namespace PartnerBot.Discord.Commands.Core
                         if (p.Tags.Count + addTags.Length > TAG_LIMIT)
                         {
                             await statusMessage.ModifyAsync(statusEmbed
-                                .WithDescription("The ammount of tags added place your tags over the limit of 10 tags. Please try adding less tags.")
+                                .WithDescription("The amount of tags added place your tags over the limit of 10 tags. Please try adding less tags.")
                                 .Build());
 
                             errored = true;
@@ -1051,7 +1051,7 @@ namespace PartnerBot.Discord.Commands.Core
                     case "del":
 
                         await statusMessage.ModifyAsync(statusEmbed
-                            .WithDescription("**Remvoing Tags**:\n\n" +
+                            .WithDescription("**Removing Tags**:\n\n" +
                             "Please enter the tags you would wish to remove. Tags are one word, and multiple tags can be separated by spaces.\n\n" +
                             $"Current Tags: `{string.Join("`, `", p.Tags)}`")
                             .Build());

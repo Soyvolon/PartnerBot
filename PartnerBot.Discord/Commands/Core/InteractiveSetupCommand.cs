@@ -157,7 +157,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                         if (chanRes.Item1 is null)
                         {
-                            await RespondError(chanRes.Item2 ?? "An unknown error occoured.");
+                            await RespondError(chanRes.Item2 ?? "An unknown error occurred.");
                             return;
                         }
 
@@ -173,7 +173,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                         if (messageRes.Item1 is null)
                         {
-                            await RespondError(messageRes.Item2 ?? "An unknown error occoured.");
+                            await RespondError(messageRes.Item2 ?? "An unknown error occurred.");
                             return;
                         }
 
@@ -210,7 +210,7 @@ namespace PartnerBot.Discord.Commands.Core
                         {
                             statusEmbed.WithTitle("Partner Bot Setup - Main")
                                 .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**You have used up all your embeds! You can edit a exsisting one, or remove an old one and add a new one.**")
+                                $"**You have used up all your embeds! You can edit a existing one, or remove an old one and add a new one.**")
                                 .WithColor(DiscordColor.DarkRed);
 
                             errored = true;
@@ -249,7 +249,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                                 if (addEnd.Item1 is null)
                                 {
-                                    await RespondError(addEnd.Item2 ?? "An unknown error occoured.");
+                                    await RespondError(addEnd.Item2 ?? "An unknown error occurred.");
                                     return;
                                 }
 
@@ -286,7 +286,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                             statusEmbed.WithTitle("Partner Bot Setup - Main")
                                 .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**Please enter the index of the emebed you would like to edit:**\n" +
+                                $"**Please enter the index of the embed you would like to edit:**\n" +
                                 $"*[index] title*\n\n" +
                                 $"{string.Join("\n", dat)}")
                                 .WithColor(Color_PartnerBotMagenta);
@@ -329,7 +329,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                                 if (editEnd.Item1 is null)
                                 {
-                                    await RespondError(editEnd.Item2 ?? "An unknown error occoured.");
+                                    await RespondError(editEnd.Item2 ?? "An unknown error occurred.");
                                     return;
                                 }
 
@@ -366,7 +366,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                             statusEmbed.WithTitle("Partner Bot Setup - Main")
                                 .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**Please enter the index of the emebed you would like to remove:**\n" +
+                                $"**Please enter the index of the embed you would like to remove:**\n" +
                                 $"*[index] title*\n\n" +
                                 $"{string.Join("\n", dat)}")
                                 .WithColor(Color_PartnerBotMagenta);
@@ -416,7 +416,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                         if (bannerRes.Item1 is null)
                         {
-                            await RespondError(bannerRes.Item2 ?? "An unknown error occoured.");
+                            await RespondError(bannerRes.Item2 ?? "An unknown error occurred.");
                             return;
                         }
 
@@ -430,7 +430,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                         if (colorRes.Item1 is null)
                         {
-                            await RespondError(colorRes.Item2 ?? "An unknown error occoured.");
+                            await RespondError(colorRes.Item2 ?? "An unknown error occurred.");
                             return;
                         }
 
@@ -444,7 +444,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                         if (tagRes.Item1 is null)
                         {
-                            await RespondError(tagRes.Item2 ?? "An unknown error occoured.");
+                            await RespondError(tagRes.Item2 ?? "An unknown error occurred.");
                             return;
                         }
 
@@ -539,7 +539,7 @@ namespace PartnerBot.Discord.Commands.Core
             else
             {
                 statusEmbed.WithTitle("Partner Bot Setup - Main")
-                    .WithDescription("An error occoured while saving:\n\n```\n" +
+                    .WithDescription("An error occurred while saving:\n\n```\n" +
                     $"{updateRes.Item2}" +
                     $"\n```")
                     .WithColor(DiscordColor.DarkRed);
