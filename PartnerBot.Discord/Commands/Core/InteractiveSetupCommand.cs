@@ -323,7 +323,7 @@ namespace PartnerBot.Discord.Commands.Core
                             {
                                 var oldEmbed = partner.MessageEmbeds[index];
 
-                                var editEnd = await GetCustomDiscordEmbedAsync(partner, statusMessage, statusEmbed, oldEmbed.Title, oldEmbed);
+                                var editEnd = await GetCustomDiscordEmbedAsync(partner, statusMessage, statusEmbed, oldEmbed.Title, new(oldEmbed));
 
                                 if (editEnd.Item3) return;
 

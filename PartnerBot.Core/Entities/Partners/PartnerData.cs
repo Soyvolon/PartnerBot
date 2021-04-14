@@ -43,9 +43,8 @@ namespace PartnerBot.Core.Entities
                     .WithImageUrl(Match.Banner))
                 .WithUsername($"{Match.GuildName} | Partner Bot");
 
-            if(attachEmbeds)
-                foreach(var e in Match.MessageEmbeds)
-                    hook.AddEmbed(e);
+            if (attachEmbeds)
+                hook.AddEmbeds(Match.MessageEmbeds);
 
             if (!string.IsNullOrWhiteSpace(Match.GuildIcon))
                 hook.WithAvatarUrl(Match.GuildIcon);

@@ -28,7 +28,7 @@ namespace PartnerBot.Core.Entities
         public int UserCount { get; set; } = -1;
         public int LinksUsed { get; set; } = 0;
         public DiscordColor BaseColor { get; set; } = DiscordColor.Gray;
-        public List<DiscordEmbedBuilder> MessageEmbeds { get; set; } = new();
+        public List<DiscordEmbed> MessageEmbeds { get; set; } = new();
         public string? VanityInvite { get; set; } = null;
 
         public Partner() { }

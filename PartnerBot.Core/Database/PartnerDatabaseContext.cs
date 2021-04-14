@@ -35,7 +35,7 @@ namespace PartnerBot.Core.Database
             partner.Property(x => x.MessageEmbeds)
                 .HasConversion( // use newtonsoft.json here because DSharpPlus uses it to define the embed.
                     v => JsonConvert.SerializeObject(v),
-                    v => JsonConvert.DeserializeObject<List<DiscordEmbedBuilder>>(v) ?? new());
+                    v => JsonConvert.DeserializeObject<List<DiscordEmbed>>(v) ?? new());
             partner.Property(x => x.Tags)
                 .HasConversion(
                     v => System.Text.Json.JsonSerializer.Serialize(v, null),

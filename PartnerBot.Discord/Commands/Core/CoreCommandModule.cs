@@ -690,7 +690,12 @@ namespace PartnerBot.Discord.Commands.Core
 
                 var msg = res.Result.Content.Trim().ToLower();
 
-                if (int.TryParse(msg, out var num))
+                if (msg.Equals("exit"))
+                {
+                    await RespondError("Aborting field editor...");
+                    return true;
+                }
+                else if (int.TryParse(msg, out var num))
                 {
                     if (num > 0 && num <= fields)
                     {
@@ -724,6 +729,7 @@ namespace PartnerBot.Discord.Commands.Core
             string? newDesc = null;
             string? newTitle = null;
             bool invertInline = false;
+            bool errored = false;
             do
             {
                 var response = await GetFollowupMessageAsync(interact);
@@ -747,6 +753,10 @@ namespace PartnerBot.Discord.Commands.Core
                 switch (trimmed)
                 {
                     case "title":
+                        await statusMessage.ModifyAsync(statusEmbed
+                            .WithDescription("Please enter the new title for this field:")
+                            .Build());
+
                         newTitle = await GetFieldTitle(interact, statusMessage, statusEmbed);
                         break;
                     case "message":
@@ -766,23 +776,31 @@ namespace PartnerBot.Discord.Commands.Core
                                 $"`title`, `message`, `inline`. Or, enter `save` to save any changes.")
                             .WithColor(DiscordColor.DarkRed)
                             .Build());
+
+                        errored = true;
                         break;
                 }
 
-                await statusMessage.ModifyAsync(statusEmbed
-                    .WithDescription("Welcome to the custom embed builder. Please select what modifications you want to make:")
-                    .WithColor(DiscordColor.Gold)
-                    .Build());
+                if (!errored)
+                {
+                    await statusMessage.ModifyAsync(statusEmbed
+                        .WithDescription($"Please select which field edit you would like to do:\n" +
+                $"`title`, `message`, `inline`. Or, enter `save` to save any changes.")
+                        .WithColor(DiscordColor.Gold)
+                        .Build());
+                }
+
+                if (newDesc is not null)
+                    displayEmbed.Fields[field].Value = newDesc;
+                if (newTitle is not null)
+                    displayEmbed.Fields[field].Name = newTitle;
+                if (invertInline)
+                    displayEmbed.Fields[field].Inline = !displayEmbed.Fields[field].Inline;
+
+                await displayMessage.ModifyAsync(displayEmbed.Build());
+
+                errored = false;
             } while (true);
-
-            if (newDesc is not null)
-                displayEmbed.Fields[field].Value = newDesc;
-            if (newTitle is not null)
-                displayEmbed.Fields[field].Name = newTitle;
-            if (invertInline)
-                displayEmbed.Fields[field].Inline = !displayEmbed.Fields[field].Inline;
-
-            await displayMessage.ModifyAsync(displayEmbed.Build());
 
             return true;
         }
