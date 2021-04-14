@@ -3,6 +3,8 @@
 using DSharpPlus;
 using DSharpPlus.Entities;
 
+using PartnerBot.Core.Services;
+
 namespace PartnerBot.Core.Entities
 {
     public class PartnerData : Partner
@@ -29,22 +31,28 @@ namespace PartnerBot.Core.Entities
                 return;
             }
 
-            bool vanity = Match.VanityInvite is not null && Match.DonorRank >= 1;
-            bool attachEmbeds = Match.DonorRank >= 3;
+            bool vanity = Match.VanityInvite is not null && Match.DonorRank >= DonorService.VANITY_LIMIT;
+            bool attachEmbeds = Match.DonorRank >= DonorService.EMBED_LIMIT;
 
             var hook = new DiscordWebhookBuilder()
                 .WithContent($"{Match.Message}\n\n" +
                 $"https://discord.gg/" +
                 $"{(vanity ? Match.VanityInvite : Match.Invite)}")
-                .AddEmbed(new DiscordEmbedBuilder()
-                    .WithColor(DiscordColor.Gray)
-                    .WithTitle("Partner Bot Advertisment")
-                    .WithDescription($"**ID:** {Match.GuildId}")
-                    .WithImageUrl(Match.Banner))
                 .WithUsername($"{Match.GuildName} | Partner Bot");
 
             if (attachEmbeds)
-                hook.AddEmbeds(Match.MessageEmbeds);
+            {
+                if (Match.DonorRank == 3)
+                    hook.AddEmbeds(Match.MessageEmbeds);
+                else if(Match.MessageEmbeds.Count > 0)
+                    hook.AddEmbed(Match.MessageEmbeds[0]);
+            }
+
+            hook.AddEmbed(new DiscordEmbedBuilder()
+                    .WithColor(DiscordColor.Gray)
+                    .WithTitle("Partner Bot Advertisment")
+                    .WithDescription($"**ID:** {Match.GuildId}")
+                    .WithImageUrl(Match.Banner));
 
             if (!string.IsNullOrWhiteSpace(Match.GuildIcon))
                 hook.WithAvatarUrl(Match.GuildIcon);
