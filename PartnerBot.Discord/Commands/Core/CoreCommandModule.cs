@@ -389,7 +389,8 @@ namespace PartnerBot.Discord.Commands.Core
                 {
                     var links = res.Result.Content.GetUrls();
 
-                    _ = Uri.TryCreate(links[0], UriKind.Absolute, out bannerUrl);
+                    if(links.Count > 0)
+                        _ = Uri.TryCreate(links[0], UriKind.Absolute, out bannerUrl);
                 }
 
                 if(bannerUrl is null)

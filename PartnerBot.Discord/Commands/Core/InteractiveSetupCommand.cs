@@ -198,15 +198,17 @@ namespace PartnerBot.Discord.Commands.Core
 
                     // Secondary Settings
                     case "add-embed":
-                        if (partner.DonorRank < 3)
+                        if (partner.DonorRank < DonorService.EMBED_LIMIT)
                         {
                             statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**You need to be a Quadruple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**")
+                                $"**You need to be a Tripple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**")
                                 .WithColor(DiscordColor.DarkRed);
 
                             errored = true;
                         }
-                        else if (partner.MessageEmbeds.Count >= DonorService.MAX_EMBEDS)
+                        else if (partner.DonorRank == 3 
+                            ? partner.MessageEmbeds.Count >= DonorService.QUADRUPLE_EMBEDS 
+                            : partner.MessageEmbeds.Count >= DonorService.TRIPPLE_EMBEDS)
                         {
                             statusEmbed.WithTitle("Partner Bot Setup - Main")
                                 .WithDescription($"{BASE_MESSAGE}\n\n" +
@@ -259,11 +261,11 @@ namespace PartnerBot.Discord.Commands.Core
                         break;
 
                     case "edit-embed":
-                        if (partner.DonorRank < 3)
+                        if (partner.DonorRank < DonorService.EMBED_LIMIT)
                         {
                             statusEmbed.WithTitle("Partner Bot Setup - Main")
                                 .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**You need to be a Quadruple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**")
+                                $"**You need to be a Tripple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**")
                                 .WithColor(DiscordColor.DarkRed);
 
                             errored = true;
@@ -339,11 +341,11 @@ namespace PartnerBot.Discord.Commands.Core
                         break;
 
                     case "remove-embed":
-                        if (partner.DonorRank < 3)
+                        if (partner.DonorRank < DonorService.EMBED_LIMIT)
                         {
                             statusEmbed.WithTitle("Partner Bot Setup - Main")
                                 .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**You need to be a Quadruple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**")
+                                $"**You need to be a Tripple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**")
                                 .WithColor(DiscordColor.DarkRed);
 
                             errored = true;
@@ -420,7 +422,7 @@ namespace PartnerBot.Discord.Commands.Core
                             return;
                         }
 
-                        partner.Banner = bannerRes.Item1.AbsolutePath;
+                        partner.Banner = bannerRes.Item1.AbsoluteUri;
                         break;
 
                     case "color":
@@ -452,7 +454,7 @@ namespace PartnerBot.Discord.Commands.Core
                         break;
 
                     case "vanity":
-                        if (partner.DonorRank >= 1)
+                        if (partner.DonorRank >= DonorService.VANITY_LIMIT)
                         {
                             if (partner.VanityInvite is not null)
                             {
@@ -559,8 +561,9 @@ namespace PartnerBot.Discord.Commands.Core
             bool invalidBanner = string.IsNullOrWhiteSpace(partner.Banner);
             bool maxLinks = partner.LinksUsed >= 3;
             bool linkCap = partner.LinksUsed >= partner.DonorRank;
-            bool embedsRemaining = partner.MessageEmbeds.Count < DonorService.MAX_EMBEDS;
-            bool embedAllowed = partner.DonorRank >= 3;
+            int maxEmbeds = partner.DonorRank == 2 ? DonorService.TRIPPLE_EMBEDS : partner.DonorRank == 3 ? DonorService.QUADRUPLE_EMBEDS : 0;
+            bool embedsRemaining = partner.MessageEmbeds.Count < maxEmbeds;
+            bool embedAllowed = partner.DonorRank >= 2;
             bool defaultColor = partner.BaseColor.Value == DiscordColor.Gray.Value;
             bool usedTags = partner.Tags.Count >= TAG_LIMIT;
             bool usedVanity = partner.VanityInvite is not null;
@@ -598,8 +601,8 @@ namespace PartnerBot.Discord.Commands.Core
                         : $"You have used {partner.LinksUsed} of {partner.DonorRank} avalible links. Edit your message with `message` to use them!", true)
                 .AddField($"{(embedsRemaining ? (embedAllowed ? Cross.GetDiscordName() : Lock.GetDiscordName()) : Check.GetDiscordName())} Embeds", 
                     embedsRemaining ?
-                        (embedAllowed ? $"You have used {partner.MessageEmbeds.Count} of 4 embeds. Use `add-embed` to add a new embed!"
-                            : "You can't add any embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.")
+                        (embedAllowed ? $"You have used {partner.MessageEmbeds.Count} of {maxEmbeds} embeds. Use `add-embed` to add a new embed!"
+                            : "You can't add any embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to more embeds.")
                         : "You have used all of your embeds! Consider editing or removing some to update your message with `edit-embed` or `remove-embed`!", true)
                 .AddField($"{(defaultColor ? Cross.GetDiscordName() : Check.GetDiscordName())} Color",
                     defaultColor ? "You have no custom color set! Set one with `color`."

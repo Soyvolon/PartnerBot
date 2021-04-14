@@ -14,7 +14,12 @@ namespace PartnerBot.Core.Services
 {
     public class DonorService
     {
-        public static readonly int MAX_EMBEDS = 4;
+        public const int EMBED_LIMIT = 2;
+        public const int QUADRUPLE_EMBEDS = 4;
+        public const int TRIPPLE_EMBEDS = 1;
+
+        public const int VANITY_LIMIT = 1;
+
         private readonly DiscordShardedClient _client;
         private readonly PartnerBotConfiguration _pcfg;
 
