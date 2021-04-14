@@ -14,6 +14,8 @@ namespace PartnerBot.Core.Services
 {
     public class DonorService
     {
+        public const int HIGHEST_RANK = 3;
+
         public const int EMBED_LIMIT = 2;
         public const int QUADRUPLE_EMBEDS = 4;
         public const int TRIPPLE_EMBEDS = 1;

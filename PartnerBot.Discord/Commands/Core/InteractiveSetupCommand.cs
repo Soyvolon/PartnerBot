@@ -208,7 +208,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                             errored = true;
                         }
-                        else if (partner.DonorRank == 3 
+                        else if (partner.DonorRank >= DonorService.HIGHEST_RANK 
                             ? partner.MessageEmbeds.Count >= DonorService.QUADRUPLE_EMBEDS 
                             : partner.MessageEmbeds.Count >= DonorService.TRIPPLE_EMBEDS)
                         {
@@ -561,9 +561,9 @@ namespace PartnerBot.Discord.Commands.Core
                 validChannel = GuildVerificationService.VerifyChannel(channel);
             bool invalidMessage = string.IsNullOrWhiteSpace(partner.Message);
             bool invalidBanner = string.IsNullOrWhiteSpace(partner.Banner);
-            bool maxLinks = partner.LinksUsed >= 3;
-            bool linkCap = partner.LinksUsed >= partner.DonorRank;
-            int maxEmbeds = partner.DonorRank == 2 ? DonorService.TRIPPLE_EMBEDS : partner.DonorRank == 3 ? DonorService.QUADRUPLE_EMBEDS : 0;
+            bool maxLinks = partner.LinksUsed >= DonorService.HIGHEST_RANK;
+            bool linkCap = partner.LinksUsed >= DonorService.HIGHEST_RANK;
+            int maxEmbeds = partner.DonorRank == 2 ? DonorService.TRIPPLE_EMBEDS : partner.DonorRank >= 3 ? DonorService.QUADRUPLE_EMBEDS : 0;
             bool embedsRemaining = partner.MessageEmbeds.Count < maxEmbeds;
             bool embedAllowed = partner.DonorRank >= 2;
             bool defaultColor = partner.BaseColor.Value == DiscordColor.Gray.Value;

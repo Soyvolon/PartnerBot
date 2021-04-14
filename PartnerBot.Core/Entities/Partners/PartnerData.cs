@@ -42,7 +42,7 @@ namespace PartnerBot.Core.Entities
 
             if (attachEmbeds)
             {
-                if (Match.DonorRank == 3)
+                if (Match.DonorRank >= DonorService.HIGHEST_RANK)
                     hook.AddEmbeds(Match.MessageEmbeds);
                 else if(Match.MessageEmbeds.Count > 0)
                     hook.AddEmbed(Match.MessageEmbeds[0]);
