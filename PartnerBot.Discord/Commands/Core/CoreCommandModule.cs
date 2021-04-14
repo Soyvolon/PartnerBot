@@ -929,9 +929,9 @@ namespace PartnerBot.Discord.Commands.Core
                     continue;
                 }
 
-                if(first.Contains(","))
+                if(msg.Contains(","))
                 {
-                    var parts = first.Split(",", StringSplitOptions.RemoveEmptyEntries);
+                    var parts = msg.Split(",", StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length < 3)
                     {
                         await statusMessage.ModifyAsync(statusEmbed
