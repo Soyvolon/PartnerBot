@@ -109,6 +109,8 @@ namespace PartnerBot.Core.Entities
                     embed.Title.Replace(l, string.Empty);
                 }
             }
+
+            LinksUsed = links > DonorRank ? DonorRank : links;
         }
     }
 }

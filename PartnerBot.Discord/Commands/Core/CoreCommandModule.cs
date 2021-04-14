@@ -258,6 +258,7 @@ namespace PartnerBot.Discord.Commands.Core
             bool first = true;
             DiscordMessage? pMessage = null;
             string? message = null;
+            int linkCount = p.LinksUsed;
             do
             {
                 var response = await GetFollowupMessageAsync(interact);
@@ -294,11 +295,13 @@ namespace PartnerBot.Discord.Commands.Core
                 if (pMessage is not null)
                     await pMessage.DeleteAsync();
 
+                linkCount = p.LinksUsed;
+
                 var links = msg.GetUrls();
 
                 foreach (var l in links)
                 {
-                    if (p.LinksUsed >= p.DonorRank)
+                    if (linkCount >= p.DonorRank)
                     {
                         msg = msg.Remove(msg.IndexOf(l), l.Length);
                     }
@@ -310,7 +313,7 @@ namespace PartnerBot.Discord.Commands.Core
                         }
                         else
                         {
-                            p.LinksUsed++;
+                            linkCount++;
                         }
                     }
                 }
@@ -330,6 +333,8 @@ namespace PartnerBot.Discord.Commands.Core
 
             if(pMessage is not null)
                 await pMessage.DeleteAsync();
+
+            p.LinksUsed = linkCount;
 
             return (message, null, false);
         }

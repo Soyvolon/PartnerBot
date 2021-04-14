@@ -91,6 +91,8 @@ namespace PartnerBot.Discord.Commands.Core
 
             await db.SaveChangesAsync();
 
+            partner.ModifyToDonorRank();
+
             DiscordChannel? channel = null;
             ulong oldChannelId = 0;
             DiscordWebhook? hook = null;
