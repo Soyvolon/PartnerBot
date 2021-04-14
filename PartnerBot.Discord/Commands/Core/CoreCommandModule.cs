@@ -932,7 +932,7 @@ namespace PartnerBot.Discord.Commands.Core
                 if(first.Contains(","))
                 {
                     var parts = first.Split(",", StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length <= 3)
+                    if (parts.Length < 3)
                     {
                         await statusMessage.ModifyAsync(statusEmbed
                             .WithColor(DiscordColor.DarkRed)
@@ -945,14 +945,14 @@ namespace PartnerBot.Discord.Commands.Core
                     {
                         bool valid = true;
 
-                        float one = 0f, two = 0f, three = 0f;
+                        byte one = 0, two = 0, three = 0;
 
                         if(valid)
-                            valid &= float.TryParse(parts[0], out one);
+                            valid &= byte.TryParse(parts[0], out one);
                         if(valid)
-                            valid &= float.TryParse(parts[1], out two);
+                            valid &= byte.TryParse(parts[1], out two);
                         if(valid)
-                            valid &= float.TryParse(parts[2], out three);
+                            valid &= byte.TryParse(parts[2], out three);
 
                         if (valid)
                         {
