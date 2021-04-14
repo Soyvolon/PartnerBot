@@ -3,7 +3,7 @@
 - **Getting Started**
     - [Quick Start](/quickstart)
 - **Partner Configuration**
-    - [Required Config](/require-config)
+    - [Required Config](/required-config)
     - [Optional Config](/optional-config)
     - [Donor Only Config](/donor-config)
 - **Links**
