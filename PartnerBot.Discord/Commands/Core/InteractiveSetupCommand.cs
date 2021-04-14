@@ -581,7 +581,7 @@ namespace PartnerBot.Discord.Commands.Core
             bool canUseVanity = partner.DonorRank >= 1;
 
             var requirementsEmbed = new DiscordEmbedBuilder()
-                .WithColor(Color_PartnerBotMagenta)
+                .WithColor(partner.BaseColor)
                 .WithTitle("Partner Bot Setup Requirements")
                 .AddField($"{(partner.Active ? Check.GetDiscordName() : Cross.GetDiscordName())} Active",
                     partner.Active ? "Partner Bot is **Active** on this server!" : "Partner Bot is **Inactive** on this server." +
