@@ -9,9 +9,4 @@
     <ProjectReference Include="..\PartnerBot.Core\PartnerBot.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0" />
-    <PackageReference Include="DSharpPlus.Interactivity" Version="4.0.0" />
-  </ItemGroup>
-
 </Project>
