@@ -2,6 +2,8 @@
 
 - **Getting Started**
     - [Quick Start](/quickstart)
+    - [Terms of Service](/tos)
+    - [FAQ](/faq)
 - **Partner Configuration**
     - [Required Config](/required-config)
     - [Optional Config](/optional-config)
