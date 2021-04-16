@@ -9,8 +9,8 @@ using PartnerBot.Core.Database;
 namespace PartnerBot.Core.Migrations
 {
     [DbContext(typeof(PartnerDatabaseContext))]
-    [Migration("20210410214144_InitMig")]
-    partial class InitMig
+    [Migration("20210416160548_Init")]
+    partial class Init
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -70,7 +70,6 @@ namespace PartnerBot.Core.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("GuildIcon")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("GuildName")

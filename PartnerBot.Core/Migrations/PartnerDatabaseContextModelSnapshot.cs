@@ -68,7 +68,6 @@ namespace PartnerBot.Core.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("GuildIcon")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("GuildName")

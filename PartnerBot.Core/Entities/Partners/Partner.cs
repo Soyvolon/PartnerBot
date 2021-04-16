@@ -13,7 +13,7 @@ namespace PartnerBot.Core.Entities
     {
         public ulong GuildId { get; set; } = 0;
         public string GuildName { get; set; } = "";
-        public string GuildIcon { get; set; } = "";
+        public string? GuildIcon { get; set; } = "";
         public ulong OwnerId { get; set; } = 0;
         public ulong WebhookId { get; set; } = 0;
         public string Message { get; set; } = "";

@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace PartnerBot.Core.Migrations
 {
-    public partial class InitMig : Migration
+    public partial class Init : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -41,7 +41,7 @@ namespace PartnerBot.Core.Migrations
                     GuildId = table.Column<ulong>(type: "INTEGER", nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     GuildName = table.Column<string>(type: "TEXT", nullable: false),
-                    GuildIcon = table.Column<string>(type: "TEXT", nullable: false),
+                    GuildIcon = table.Column<string>(type: "TEXT", nullable: true),
                     OwnerId = table.Column<ulong>(type: "INTEGER", nullable: false),
                     WebhookId = table.Column<ulong>(type: "INTEGER", nullable: false),
                     Message = table.Column<string>(type: "TEXT", nullable: false),

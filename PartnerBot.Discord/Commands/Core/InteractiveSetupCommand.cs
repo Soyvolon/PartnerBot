@@ -562,10 +562,10 @@ namespace PartnerBot.Discord.Commands.Core
             bool invalidMessage = string.IsNullOrWhiteSpace(partner.Message);
             bool invalidBanner = string.IsNullOrWhiteSpace(partner.Banner);
             bool maxLinks = partner.LinksUsed >= DonorService.HIGHEST_RANK;
-            bool linkCap = partner.LinksUsed >= DonorService.HIGHEST_RANK;
+            bool linkCap = partner.LinksUsed >= partner.DonorRank;
             int maxEmbeds = partner.DonorRank == 2 ? DonorService.TRIPPLE_EMBEDS : partner.DonorRank >= 3 ? DonorService.QUADRUPLE_EMBEDS : 0;
             bool embedsRemaining = partner.MessageEmbeds.Count < maxEmbeds;
-            bool embedAllowed = partner.DonorRank >= 2;
+            bool embedAllowed = partner.DonorRank >= DonorService.EMBED_LIMIT && !(!embedsRemaining && partner.DonorRank == DonorService.EMBED_LIMIT);
             bool defaultColor = partner.BaseColor.Value == DiscordColor.Gray.Value;
             bool usedTags = partner.Tags.Count >= TAG_LIMIT;
             bool usedVanity = partner.VanityInvite is not null;
@@ -601,11 +601,11 @@ namespace PartnerBot.Discord.Commands.Core
                         (maxLinks ? "You have used all your links! Modify your message to change the links with `message`." 
                             : "You can't use any more links! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get more links.")
                         : $"You have used {partner.LinksUsed} of {partner.DonorRank} avalible links. Edit your message with `message` to use them!", true)
-                .AddField($"{(embedsRemaining ? (embedAllowed ? Cross.GetDiscordName() : Lock.GetDiscordName()) : Check.GetDiscordName())} Embeds", 
-                    embedsRemaining ?
-                        (embedAllowed ? $"You have used {partner.MessageEmbeds.Count} of {maxEmbeds} embeds. Use `add-embed` to add a new embed!"
-                            : "You can't add any embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to more embeds.")
-                        : "You have used all of your embeds! Consider editing or removing some to update your message with `edit-embed` or `remove-embed`!", true)
+                .AddField($"{(embedAllowed ? (embedsRemaining ? Cross.GetDiscordName() : Check.GetDiscordName()) : Lock.GetDiscordName())} Embeds",
+                    embedAllowed ?
+                        (embedsRemaining ? $"You have used {partner.MessageEmbeds.Count} of {maxEmbeds} embeds. Use `add-embed` to add a new embed!"
+                            : "You have used all of your embeds! Consider editing or removing some to update your message with `edit-embed` or `remove-embed`!")
+                        : "You can't add any embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to more embeds.", true)
                 .AddField($"{(defaultColor ? Cross.GetDiscordName() : Check.GetDiscordName())} Color",
                     defaultColor ? "You have no custom color set! Set one with `color`."
                         : $"You have your custom color set to `R{partner.BaseColor.R}, G{partner.BaseColor.G}, B{partner.BaseColor.B}`! Change it with `color`.", true)
