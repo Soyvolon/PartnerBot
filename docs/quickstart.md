@@ -84,7 +84,8 @@ Partner Bot is completely automatic from here on out, so no need to do anything 
 
 ## Advanced Setup Options
 
-
+From custom embed coloring to adding your own banner to your **Partner Message**, these advanced options allow further customization of your message! Check them out on our [Optional Config](/optional-config) page!
 
 ## Donation Setup Options
 
+For even further customization, including adding custom links, using your servers vanity invite, and adding custom embeds to your message, check out our [Donor Only Config](/donor-config) page!
