@@ -11,7 +11,7 @@ Make sure to not change any of the allowed permissions if you would like Partner
 ## The Next Steps
 
 - Check out the [Quick Start](/quickstart) guide for a full tutorial on setting up Partner Bot in your server!
-- Check out our [Video Tutorial]() that guides you through the setup!
+<!-- - Check out our [Video Tutorial]() that guides you through the setup! -->
 - **If you are an advanced user**, check out the [Required Config](/required-config) and [Optional Config](/optional-config) pages for details about specific configuration options!
 - **Want so super cool customization options?** Check out our [Donor Only Config](/donor-config) options!
 
