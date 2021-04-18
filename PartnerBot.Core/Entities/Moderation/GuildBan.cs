@@ -3,6 +3,9 @@ using System.ComponentModel.DataAnnotations;
 
 namespace PartnerBot.Core.Entities.Moderation
 {
+    /// <summary>
+    /// Stores data about a Partner Bot ban.
+    /// </summary>
     public class GuildBan
     {
         [Key]

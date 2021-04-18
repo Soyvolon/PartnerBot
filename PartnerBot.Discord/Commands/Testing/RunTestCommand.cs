@@ -1,15 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 
 using PartnerBot.Core.Entities;
-using PartnerBot.Core.Services;
 
 namespace PartnerBot.Discord.Commands.Testing
 {
@@ -27,7 +23,7 @@ namespace PartnerBot.Discord.Commands.Testing
             [Description("Ignore cache comparison checks?")]
             bool ignoreCache = false)
         {
-            var data = await DevelopmentStressTestDataManager.GetDataAsync();
+            List<DevelopmentStressTestChannel>? data = await DevelopmentStressTestDataManager.GetDataAsync();
 
             if(data is null)
             {
@@ -39,7 +35,7 @@ namespace PartnerBot.Discord.Commands.Testing
             Stopwatch timer = new();
             timer.Start();
 
-            await _sender.ExecuteAsync(new()
+            await this._sender.ExecuteAsync(new()
             {
                 DevelopmentStressTest = true,
                 DonorRun = donorRun,

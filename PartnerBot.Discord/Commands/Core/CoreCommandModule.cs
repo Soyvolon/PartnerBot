@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 using DSharpPlus;
@@ -10,7 +9,6 @@ using DSharpPlus.Exceptions;
 using DSharpPlus.Interactivity;
 using DSharpPlus.Interactivity.Extensions;
 
-using PartnerBot.Core.Database;
 using PartnerBot.Core.Entities;
 using PartnerBot.Core.Services;
 using PartnerBot.Core.Utils;
@@ -38,8 +36,8 @@ namespace PartnerBot.Discord.Commands.Core
 
         protected async Task<(InteractivityResult<DiscordMessage>, bool)> GetFollowupMessageAsync(InteractivityExtension interact)
         {
-            var res = await interact.WaitForMessageAsync(x => x.Author.Id == Context.Member.Id
-                    && x.ChannelId == Context.Channel.Id);
+            InteractivityResult<DiscordMessage> res = await interact.WaitForMessageAsync(x => x.Author.Id == this.Context.Member.Id
+                    && x.ChannelId == this.Context.Channel.Id);
 
             if (res.TimedOut)
             {
@@ -52,11 +50,10 @@ namespace PartnerBot.Discord.Commands.Core
             return (res, true);
         }
 
-        // TODO: Update get new partner channel to check for the ability to create/move(?) webhooks.
         protected async Task<((DiscordChannel, DiscordWebhook, string)?, string?, bool)> GetNewPartnerChannelAsync(Partner partner, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
         {
-            var interact = Context.Client.GetInteractivity();
-            var color = DiscordColor.Purple;
+            InteractivityExtension? interact = this.Context.Client.GetInteractivity();
+            DiscordColor color = DiscordColor.Purple;
 
             await statusMessage.ModifyAsync(statusEmbed
                 .WithTitle("Partner Bot Setup - Channel")
@@ -71,11 +68,11 @@ namespace PartnerBot.Discord.Commands.Core
             bool valid = false;
             do
             {
-                var folloup = await GetFollowupMessageAsync(interact);
+                (InteractivityResult<DiscordMessage>, bool) folloup = await GetFollowupMessageAsync(interact);
 
                 if (!folloup.Item2) return (null, null, true);
 
-                var res = folloup.Item1;
+                InteractivityResult<DiscordMessage> res = folloup.Item1;
 
                 if(res.Result.Content.Trim().ToLower().Equals("exit"))
                 {
@@ -91,7 +88,7 @@ namespace PartnerBot.Discord.Commands.Core
                 }
                 else
                 {
-                    var mentioned = res.Result.MentionedChannels[0];
+                    DiscordChannel? mentioned = res.Result.MentionedChannels[0];
 
                     if(GuildVerificationService.VerifyChannel(mentioned))
                     {
@@ -103,9 +100,9 @@ namespace PartnerBot.Discord.Commands.Core
                         string desc = "**Invalid Channel Setup.**\n" +
                             $"Some overwrites are missing the `View Channel` or `Read Message History` for {mentioned.Mention}";
 
-                        var invalidRes = await GetInvalidChannelSetupDataString(mentioned);
-                        var data = invalidRes.Item1;
-                        var invalid = invalidRes.Item2;
+                        (List<string>, List<DiscordOverwrite>) invalidRes = await GetInvalidChannelSetupDataString(mentioned);
+                        List<string>? data = invalidRes.Item1;
+                        List<DiscordOverwrite>? invalid = invalidRes.Item2;
 
                         desc += $"**Would you like Partner Bot to fix this channel for you? If so, type `yes`." +
                             $" Otherwise, type `no` to return to channel selection.**\n\n\n" +
@@ -129,7 +126,7 @@ namespace PartnerBot.Discord.Commands.Core
                         }
                         else if (res.Result.Content.Trim().ToLower().Equals("yes"))
                         {
-                            var fix = await ConfigurePartnerChannelPermissions(invalid);
+                            (bool, string?) fix = await ConfigurePartnerChannelPermissions(invalid);
 
                             if(fix.Item1)
                             {
@@ -155,7 +152,7 @@ namespace PartnerBot.Discord.Commands.Core
             DiscordWebhook hook;
             if(partner.WebhookId != 0)
             {
-                hook = await Context.Client.GetWebhookAsync(partner.WebhookId);
+                hook = await this.Context.Client.GetWebhookAsync(partner.WebhookId);
             }
             else
             {
@@ -170,7 +167,7 @@ namespace PartnerBot.Discord.Commands.Core
             string invite;
             if(string.IsNullOrWhiteSpace(partner.Invite))
             {
-                var fullinvite = await c.CreateInviteAsync(0, 0, false, false, "Partner Bot Invite");
+                DiscordInvite? fullinvite = await c.CreateInviteAsync(0, 0, false, false, "Partner Bot Invite");
                 invite = fullinvite.Code;
             }
             else
@@ -186,7 +183,7 @@ namespace PartnerBot.Discord.Commands.Core
             List<string> data = new();
             List<DiscordOverwrite> invalid = new();
 
-            foreach (var o in channel.PermissionOverwrites)
+            foreach (DiscordOverwrite? o in channel.PermissionOverwrites)
             {
                 bool access = o.Allowed.HasPermission(Permissions.AccessChannels);
                 bool read = o.Allowed.HasPermission(Permissions.ReadMessageHistory);
@@ -200,13 +197,13 @@ namespace PartnerBot.Discord.Commands.Core
 
                 if (o.Type == OverwriteType.Member)
                 {
-                    var m = await o.GetMemberAsync();
+                    DiscordMember? m = await o.GetMemberAsync();
 
                     msg += $"**Invalid Member: {m.Mention}**\n";
                 }
                 else
                 {
-                    var r = await o.GetRoleAsync();
+                    DiscordRole? r = await o.GetRoleAsync();
 
                     msg += $"**Invalid Role: {r.Mention}**\n";
                 }
@@ -224,7 +221,7 @@ namespace PartnerBot.Discord.Commands.Core
         {
             try
             {
-                foreach (var o in invalid)
+                foreach (DiscordOverwrite? o in invalid)
                 {
                     await o.UpdateAsync(GuildVerificationService.RequiredPermissions, reason: "Partner Bot Auto Channel Setup");
                 }
@@ -245,7 +242,7 @@ namespace PartnerBot.Discord.Commands.Core
         protected async Task<(string?, string?, bool)> GetNewMessage(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed,
             int linksReset)
         {
-            var interact = Context.Client.GetInteractivity();
+            InteractivityExtension? interact = this.Context.Client.GetInteractivity();
 
             await statusMessage.ModifyAsync(statusEmbed
                 .WithTitle("Partner Bot Setup - Message")
@@ -261,15 +258,15 @@ namespace PartnerBot.Discord.Commands.Core
             int linkCount = p.LinksUsed;
             do
             {
-                var response = await GetFollowupMessageAsync(interact);
+                (InteractivityResult<DiscordMessage>, bool) response = await GetFollowupMessageAsync(interact);
 
                 if (!response.Item2) return (null, null, true);
 
-                var res = response.Item1;
+                InteractivityResult<DiscordMessage> res = response.Item1;
 
-                var msg = res.Result.Content;
+                string? msg = res.Result.Content;
 
-                var trimmed = msg.ToLower().Trim();
+                string? trimmed = msg.ToLower().Trim();
 
                 if(trimmed.Equals("exit"))
                 {
@@ -297,9 +294,9 @@ namespace PartnerBot.Discord.Commands.Core
 
                 linkCount = p.LinksUsed;
 
-                var links = msg.GetUrls();
+                IReadOnlyList<string>? links = msg.GetUrls();
 
-                foreach (var l in links)
+                foreach (string? l in links)
                 {
                     if (linkCount >= p.DonorRank)
                     {
@@ -324,7 +321,7 @@ namespace PartnerBot.Discord.Commands.Core
                     " Is this how you would like your message to look? If yes, type `save`, otherwise enter a new message.")
                     .Build());
 
-                pMessage = await Context.RespondAsync(msg);
+                pMessage = await this.Context.RespondAsync(msg);
                 message = msg;
 
                 first = false;
@@ -341,7 +338,7 @@ namespace PartnerBot.Discord.Commands.Core
 
         protected async Task<(Uri?, string?, bool)> GetNewPartnerBanner(DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
         {
-            var interact = Context.Client.GetInteractivity();
+            InteractivityExtension? interact = this.Context.Client.GetInteractivity();
 
             await statusMessage.ModifyAsync(statusEmbed
                 .WithTitle("Partner Bot Setup - Banner")
@@ -355,13 +352,13 @@ namespace PartnerBot.Discord.Commands.Core
             bool first = true;
             do
             {
-                var response = await GetFollowupMessageAsync(interact);
+                (InteractivityResult<DiscordMessage>, bool) response = await GetFollowupMessageAsync(interact);
 
                 if (!response.Item2) return (null, null, true);
 
-                var res = response.Item1;
+                InteractivityResult<DiscordMessage> res = response.Item1;
 
-                var trimmed = res.Result.Content.ToLower().Trim();
+                string? trimmed = res.Result.Content.ToLower().Trim();
 
                 if (trimmed.Equals("exit"))
                 {
@@ -392,7 +389,7 @@ namespace PartnerBot.Discord.Commands.Core
                 }
                 else
                 {
-                    var links = res.Result.Content.GetUrls();
+                    IReadOnlyList<string>? links = res.Result.Content.GetUrls();
 
                     if(links.Count > 0)
                         _ = Uri.TryCreate(links[0], UriKind.Absolute, out bannerUrl);
@@ -414,7 +411,7 @@ namespace PartnerBot.Discord.Commands.Core
                         .WithColor(DiscordColor.HotPink)
                         .Build());
 
-                    displayMsg = await Context.RespondAsync(new DiscordEmbedBuilder()
+                    displayMsg = await this.Context.RespondAsync(new DiscordEmbedBuilder()
                         .WithImageUrl(bannerUrl));
                 }
 
@@ -432,7 +429,7 @@ namespace PartnerBot.Discord.Commands.Core
         protected async Task<(DiscordEmbedBuilder?, string?, bool)> GetCustomDiscordEmbedAsync(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed,
             string title, DiscordEmbedBuilder? toEdit = null)
         {
-            var interact = Context.Client.GetInteractivity();
+            InteractivityExtension? interact = this.Context.Client.GetInteractivity();
 
             await statusMessage.ModifyAsync(statusEmbed
                 .WithTitle("Partner Bot Setup - Custom Embed")
@@ -449,20 +446,20 @@ namespace PartnerBot.Discord.Commands.Core
                 displayEmbed = new DiscordEmbedBuilder()
                     .WithTitle(title);
 
-            var displayMessage = await Context.RespondAsync(displayEmbed);
+            DiscordMessage? displayMessage = await this.Context.RespondAsync(displayEmbed);
 
             bool first = false;
             do
             {
                 bool invalidSelection = false;
 
-                var response = await GetFollowupMessageAsync(interact);
+                (InteractivityResult<DiscordMessage>, bool) response = await GetFollowupMessageAsync(interact);
 
                 if (!response.Item2) return (null, null, true);
 
-                var res = response.Item1;
+                InteractivityResult<DiscordMessage> res = response.Item1;
 
-                var trimmed = res.Result.Content.ToLower().Trim();
+                string? trimmed = res.Result.Content.ToLower().Trim();
 
                 if (trimmed.Equals("exit"))
                 {
@@ -489,7 +486,7 @@ namespace PartnerBot.Discord.Commands.Core
                             return (null, null, true);
                         break;
                     case "edit-desc":
-                        var newDesc = await GetNewMessage(p, statusMessage, statusEmbed, displayEmbed.Description.GetUrls().Count);
+                        (string?, string?, bool) newDesc = await GetNewMessage(p, statusMessage, statusEmbed, displayEmbed.Description.GetUrls().Count);
                         if (newDesc.Item3) return (null, null, true);
                         if (newDesc.Item1 is null) return (null, newDesc.Item2, newDesc.Item3);
 
@@ -498,7 +495,7 @@ namespace PartnerBot.Discord.Commands.Core
                             .Build());
                         break;
                     case "edit-title":
-                        var newTitle = await GetFieldTitle(interact, statusMessage, statusEmbed);
+                        string? newTitle = await GetFieldTitle(interact, statusMessage, statusEmbed);
                         if (newTitle is null) return (null, null, true);
 
                         await displayMessage.ModifyAsync(displayEmbed
@@ -506,7 +503,7 @@ namespace PartnerBot.Discord.Commands.Core
                             .Build());
                         break;
                     case "edit-color":
-                        var newColor = await GetCustomEmbedColorAsync(p, statusMessage, statusEmbed);
+                        (DiscordColor?, string?, bool) newColor = await GetCustomEmbedColorAsync(p, statusMessage, statusEmbed);
                         if (newColor.Item3) return (null, null, true);
                         if (newColor.Item1 is null) return (null, newColor.Item2, newColor.Item3);
 
@@ -515,7 +512,7 @@ namespace PartnerBot.Discord.Commands.Core
                             .Build());
                         break;
                     case "edit-image":
-                        var newBanner = await GetNewPartnerBanner(statusMessage, statusEmbed);
+                        (Uri?, string?, bool) newBanner = await GetNewPartnerBanner(statusMessage, statusEmbed);
                         if (newBanner.Item3) return (null, null, true);
                         if (newBanner.Item1 is null) return (null, newBanner.Item2, newBanner.Item3);
 
@@ -559,7 +556,7 @@ namespace PartnerBot.Discord.Commands.Core
 
             if (title is null) return false;
 
-            var pmsgResult = await GetNewMessage(p, statusMessage, statusEmbed, 0);
+            (string?, string?, bool) pmsgResult = await GetNewMessage(p, statusMessage, statusEmbed, 0);
 
             if (pmsgResult.Item3) return false;
             if(pmsgResult.Item1 is null)
@@ -572,7 +569,7 @@ namespace PartnerBot.Discord.Commands.Core
 
             string desc = pmsgResult.Item1;
 
-            var currentField = displayEmbed.Fields.Count;
+            int currentField = displayEmbed.Fields.Count;
             await displayMessage.ModifyAsync(displayEmbed
                 .AddField(title, desc)
                 .Build());
@@ -586,13 +583,13 @@ namespace PartnerBot.Discord.Commands.Core
             bool valid = false;
             do
             {
-                var response = await GetFollowupMessageAsync(interact);
+                (InteractivityResult<DiscordMessage>, bool) response = await GetFollowupMessageAsync(interact);
 
                 if (!response.Item2) return false;
 
-                var res = response.Item1;
+                InteractivityResult<DiscordMessage> res = response.Item1;
 
-                var msg = res.Result.Content.Trim().ToLower();
+                string? msg = res.Result.Content.Trim().ToLower();
 
                 if(msg.Equals("yes") || msg.Equals("y"))
                 {
@@ -625,11 +622,11 @@ namespace PartnerBot.Discord.Commands.Core
             string title = "";
             do
             {
-                var response = await GetFollowupMessageAsync(interact);
+                (InteractivityResult<DiscordMessage>, bool) response = await GetFollowupMessageAsync(interact);
 
                 if (!response.Item2) return null;
 
-                var res = response.Item1;
+                InteractivityResult<DiscordMessage> res = response.Item1;
 
                 if (string.IsNullOrWhiteSpace(res.Result.Content))
                 {
@@ -676,7 +673,7 @@ namespace PartnerBot.Discord.Commands.Core
             string desc = $"Please enter a value `1`-`{fields}` to edit:\n\n";
             List<string> items = new();
             int c = 1;
-            foreach (var f in displayEmbed.Fields)
+            foreach (DiscordEmbedField? f in displayEmbed.Fields)
                 items.Add($"`{c++}` - {f.Name}");
 
             await statusMessage.ModifyAsync(statusEmbed
@@ -688,20 +685,20 @@ namespace PartnerBot.Discord.Commands.Core
             bool valid = false;
             do
             {
-                var response = await GetFollowupMessageAsync(interact);
+                (InteractivityResult<DiscordMessage>, bool) response = await GetFollowupMessageAsync(interact);
 
                 if (!response.Item2) return false;
 
-                var res = response.Item1;
+                InteractivityResult<DiscordMessage> res = response.Item1;
 
-                var msg = res.Result.Content.Trim().ToLower();
+                string? msg = res.Result.Content.Trim().ToLower();
 
                 if (msg.Equals("exit"))
                 {
                     await RespondError("Aborting field editor...");
                     return true;
                 }
-                else if (int.TryParse(msg, out var num))
+                else if (int.TryParse(msg, out int num))
                 {
                     if (num > 0 && num <= fields)
                     {
@@ -738,13 +735,13 @@ namespace PartnerBot.Discord.Commands.Core
             bool errored = false;
             do
             {
-                var response = await GetFollowupMessageAsync(interact);
+                (InteractivityResult<DiscordMessage>, bool) response = await GetFollowupMessageAsync(interact);
 
                 if (!response.Item2) return false;
 
-                var res = response.Item1;
+                InteractivityResult<DiscordMessage> res = response.Item1;
 
-                var trimmed = res.Result.Content.ToLower().Trim();
+                string? trimmed = res.Result.Content.ToLower().Trim();
 
                 if (trimmed.Equals("exit"))
                 {
@@ -766,7 +763,7 @@ namespace PartnerBot.Discord.Commands.Core
                         newTitle = await GetFieldTitle(interact, statusMessage, statusEmbed);
                         break;
                     case "message":
-                        var descRes = await GetNewMessage(p, statusMessage, statusEmbed, displayEmbed.Fields[field].Value.GetUrls().Count);
+                        (string?, string?, bool) descRes = await GetNewMessage(p, statusMessage, statusEmbed, displayEmbed.Fields[field].Value.GetUrls().Count);
 
                         if (descRes.Item3) return false;
 
@@ -832,7 +829,7 @@ namespace PartnerBot.Discord.Commands.Core
             string desc = $"Please enter a value `1`-`{fields}` to delete:\n\n";
             List<string> items = new();
             int c = 1;
-            foreach(var f in displayEmbed.Fields)
+            foreach(DiscordEmbedField? f in displayEmbed.Fields)
                 items.Add($"`{c++}` - {f.Name}");
 
             await statusMessage.ModifyAsync(statusEmbed
@@ -844,15 +841,15 @@ namespace PartnerBot.Discord.Commands.Core
             bool valid = false;
             do
             {
-                var response = await GetFollowupMessageAsync(interact);
+                (InteractivityResult<DiscordMessage>, bool) response = await GetFollowupMessageAsync(interact);
 
                 if (!response.Item2) return false;
 
-                var res = response.Item1;
+                InteractivityResult<DiscordMessage> res = response.Item1;
 
-                var msg = res.Result.Content.Trim().ToLower();
+                string? msg = res.Result.Content.Trim().ToLower();
 
-                if(int.TryParse(msg, out var num))
+                if(int.TryParse(msg, out int num))
                 {
                     if(num > 0 && num <= fields)
                     {
@@ -876,7 +873,7 @@ namespace PartnerBot.Discord.Commands.Core
                 }
             } while (!valid);
 
-            var str = displayEmbed.Fields[field].Value;
+            string? str = displayEmbed.Fields[field].Value;
 
             p.LinksUsed -= str.GetUrls().Count;
 
@@ -889,7 +886,7 @@ namespace PartnerBot.Discord.Commands.Core
 
         protected async Task<(DiscordColor?, string?, bool)> GetCustomEmbedColorAsync(Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
         {
-            var interact = Context.Client.GetInteractivity();
+            InteractivityExtension? interact = this.Context.Client.GetInteractivity();
 
             await statusMessage.ModifyAsync(statusEmbed
                 .WithTitle("Partner Bot Setup - Color")
@@ -902,13 +899,13 @@ namespace PartnerBot.Discord.Commands.Core
             DiscordColor? color = null;
             do
             {
-                var folloup = await GetFollowupMessageAsync(interact);
+                (InteractivityResult<DiscordMessage>, bool) folloup = await GetFollowupMessageAsync(interact);
 
                 if (!folloup.Item2) return (null, null, true);
 
-                var res = folloup.Item1;
+                InteractivityResult<DiscordMessage> res = folloup.Item1;
 
-                var msg = res.Result.Content.Trim().ToLower();
+                string? msg = res.Result.Content.Trim().ToLower();
 
                 if (msg.Equals("exit"))
                 {
@@ -916,7 +913,7 @@ namespace PartnerBot.Discord.Commands.Core
                     return (null, null, true);
                 }
 
-                var first = msg.Split(" ", StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+                string? first = msg.Split(" ", StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
 
                 if(first is null)
                 {
@@ -931,7 +928,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                 if(msg.Contains(","))
                 {
-                    var parts = msg.Split(",", StringSplitOptions.RemoveEmptyEntries);
+                    string[]? parts = msg.Split(",", StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length < 3)
                     {
                         await statusMessage.ModifyAsync(statusEmbed
@@ -1008,7 +1005,7 @@ namespace PartnerBot.Discord.Commands.Core
         protected async Task<(HashSet<string>?, string?, bool)> UpdateTagsAsync
             (Partner p, DiscordMessage statusMessage, DiscordEmbedBuilder statusEmbed)
         {
-            var interact = Context.Client.GetInteractivity(); 
+            InteractivityExtension? interact = this.Context.Client.GetInteractivity(); 
 
             await statusMessage.ModifyAsync(statusEmbed
                 .WithColor(DiscordColor.Aquamarine)
@@ -1021,13 +1018,13 @@ namespace PartnerBot.Discord.Commands.Core
             bool errored = false;
             do
             {
-                var followup = await GetFollowupMessageAsync(interact);
+                (InteractivityResult<DiscordMessage>, bool) followup = await GetFollowupMessageAsync(interact);
 
                 if (!followup.Item2) return (null, null, true);
 
-                var res = followup.Item1;
+                InteractivityResult<DiscordMessage> res = followup.Item1;
 
-                var msg = res.Result.Content.Trim().ToLower();
+                string? msg = res.Result.Content.Trim().ToLower();
 
                 switch(msg)
                 {
@@ -1048,13 +1045,13 @@ namespace PartnerBot.Discord.Commands.Core
                             $"Current Tags: `{string.Join("`, `", p.Tags)}`")
                             .Build());
 
-                        var addFollowup = await GetFollowupMessageAsync(interact);
+                        (InteractivityResult<DiscordMessage>, bool) addFollowup = await GetFollowupMessageAsync(interact);
 
                         if (!addFollowup.Item2) return (null, null, true);
 
-                        var addRes = addFollowup.Item1;
+                        InteractivityResult<DiscordMessage> addRes = addFollowup.Item1;
 
-                        var addTags = addRes.Result.Content.Trim().ToLower().Split(" ", StringSplitOptions.RemoveEmptyEntries);
+                        string[]? addTags = addRes.Result.Content.Trim().ToLower().Split(" ", StringSplitOptions.RemoveEmptyEntries);
 
                         if (p.Tags.Count + addTags.Length > TAG_LIMIT)
                         {
@@ -1080,13 +1077,13 @@ namespace PartnerBot.Discord.Commands.Core
                             $"Current Tags: `{string.Join("`, `", p.Tags)}`")
                             .Build());
 
-                        var delFollowup = await GetFollowupMessageAsync(interact);
+                        (InteractivityResult<DiscordMessage>, bool) delFollowup = await GetFollowupMessageAsync(interact);
 
                         if (!delFollowup.Item2) return (null, null, true);
 
-                        var delRes = delFollowup.Item1;
+                        InteractivityResult<DiscordMessage> delRes = delFollowup.Item1;
 
-                        var delTags = delRes.Result.Content.Trim().ToLower().Split(" ", StringSplitOptions.RemoveEmptyEntries);
+                        string[]? delTags = delRes.Result.Content.Trim().ToLower().Split(" ", StringSplitOptions.RemoveEmptyEntries);
 
                         p.Tags.UnionWith(delTags);
 

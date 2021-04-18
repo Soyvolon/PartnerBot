@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 using DSharpPlus;
@@ -34,21 +31,21 @@ namespace PartnerBot.Discord.Commands.Testing
         public async Task SetupTestServers(CommandContext ctx, params DiscordGuild[] guilds)
         {
             List<string> names = new();
-            foreach (var g in guilds)
+            foreach (DiscordGuild? g in guilds)
                 names.Add(g.Name);
 
-            var interact = ctx.Client.GetInteractivity();
+            DSharpPlus.Interactivity.InteractivityExtension? interact = ctx.Client.GetInteractivity();
 
-            var embed = new DiscordEmbedBuilder()
+            DiscordEmbedBuilder? embed = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Red)
                 .WithTitle("Partner Test Server Setup")
                 .WithDescription("Setting up Partner Bot Test Server. Please ensure the bot has admin on all servers. Type `continue` to start.\n\n" +
                 "**THIS WILL DELETE ALL CONTENT FROM THE FOLLOWING GUILDS:**")
                 .AddField("Guilds: ", string.Join(",", names));
 
-            var message = await ctx.RespondAsync(embed);
+            DiscordMessage? message = await ctx.RespondAsync(embed);
 
-            var response = await interact.WaitForMessageAsync(x => x.Channel.Id == ctx.Channel.Id && x.Author.Id == ctx.Member.Id);
+            DSharpPlus.Interactivity.InteractivityResult<DiscordMessage> response = await interact.WaitForMessageAsync(x => x.Channel.Id == ctx.Channel.Id && x.Author.Id == ctx.Member.Id);
 
             if (response.TimedOut)
             {
@@ -63,12 +60,12 @@ namespace PartnerBot.Discord.Commands.Testing
 
             var queue = new Queue<DiscordGuild>(guilds);
 
-            var data = await DevelopmentStressTestDataManager.GetDataAsync();
+            List<DevelopmentStressTestChannel>? data = await DevelopmentStressTestDataManager.GetDataAsync();
 
             if (data is null) data = new();
 
             DiscordMessage? msg = null;
-            while (queue.TryDequeue(out var guild))
+            while (queue.TryDequeue(out DiscordGuild? guild))
             {
                 int channelStage = 0;
                 int webhookStage = 0;
@@ -95,7 +92,7 @@ namespace PartnerBot.Discord.Commands.Testing
                     if (x % 5 == 0)
                         msg = await Update(ctx, guild, queue, false, ++channelStage, webhookStage, msg);
 
-                    var chan = await BuildChannel(guild, baseChan);
+                    (DevelopmentStressTestChannel, DiscordChannel) chan = await BuildChannel(guild, baseChan);
 
                     createdChannels.Add(chan.Item1);
                     rawChannels.Add(chan.Item2);
@@ -110,7 +107,7 @@ namespace PartnerBot.Discord.Commands.Testing
                 // build new webhooks
                 x = 1;
                 int rc = 0;
-                foreach(var c in createdChannels)
+                foreach(DevelopmentStressTestChannel? c in createdChannels)
                 {
                     if(x % 5 == 0)
                         msg = await Update(ctx, guild, queue, false, channelStage, ++webhookStage, msg);
@@ -135,7 +132,7 @@ namespace PartnerBot.Discord.Commands.Testing
             data.RemoveAll(x =>
             {
                 bool found = false;
-                foreach(var shard in _client.ShardClients.Values)
+                foreach(DiscordClient? shard in this._client.ShardClients.Values)
                 {
                     if(shard.Guilds.ContainsKey(x.GuildId))
                     {
@@ -154,7 +151,7 @@ namespace PartnerBot.Discord.Commands.Testing
 
         private async Task ApplyWebhookData(DevelopmentStressTestChannel dev, DiscordChannel c)
         {
-            var hook = await c.CreateWebhookAsync("Partner Test Sender", reason: "Partner Test Server Setup");
+            DiscordWebhook? hook = await c.CreateWebhookAsync("Partner Test Sender", reason: "Partner Test Server Setup");
 
             dev.WebhookId = hook.Id;
             dev.WebhookToken = hook.Token;
@@ -170,7 +167,7 @@ namespace PartnerBot.Discord.Commands.Testing
                 Name = $"{Names[ThreadSafeRandom.Next(0, Names.Count)]}-{Names[ThreadSafeRandom.Next(0, Names.Count)]}-{dev.GuildName}"
             };
 
-            var c = await g.CreateTextChannelAsync(chan.Name, topic: $"Tags: {string.Join(", ", chan.Tags)}", reason: "Partner Test Server Setup");
+            DiscordChannel? c = await g.CreateTextChannelAsync(chan.Name, topic: $"Tags: {string.Join(", ", chan.Tags)}", reason: "Partner Test Server Setup");
 
             chan.ChannelId = c.Id;
 
@@ -179,7 +176,7 @@ namespace PartnerBot.Discord.Commands.Testing
 
         private List<string> GetTags()
         {
-            var amnt = ThreadSafeRandom.Next(0, 11);
+            int amnt = ThreadSafeRandom.Next(0, 11);
             List<string> tags = new();
             for(int i = 0; i < amnt; i++)
             {
@@ -191,7 +188,7 @@ namespace PartnerBot.Discord.Commands.Testing
 
         private async Task CleanupGuild(DiscordGuild g)
         {
-            foreach(var chan in g.Channels)
+            foreach(KeyValuePair<ulong, DiscordChannel> chan in g.Channels)
             {
                 await chan.Value.DeleteAsync("Partner Test Server Setup");
                 await Task.Delay(TimeSpan.FromSeconds(.5));
@@ -200,7 +197,7 @@ namespace PartnerBot.Discord.Commands.Testing
 
         private async Task<DiscordMessage> Update(CommandContext ctx, DiscordGuild guild, Queue<DiscordGuild> queue, bool cleanup, int channelStage, int webhookStage, DiscordMessage? msg = null)
         {
-            var embed = new DiscordEmbedBuilder()
+            DiscordEmbedBuilder? embed = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Orange)
                 .WithTitle("Partner Test Server Setup");
 

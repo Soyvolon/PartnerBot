@@ -4,6 +4,9 @@ using DSharpPlus.Entities;
 
 namespace PartnerBot.Core.Entities
 {
+    /// <summary>
+    /// The update class that holds all updatable fields for a Partner
+    /// </summary>
     public class PartnerUpdater
     {
         public string? GuildName { get; set; } = null;

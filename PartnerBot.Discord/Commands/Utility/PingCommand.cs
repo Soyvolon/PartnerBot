@@ -14,8 +14,8 @@ namespace PartnerBot.Discord.Commands.Utility
         [Description("Get the ping and latency of the bot.")]
         public async Task PingCommandAsync(CommandContext ctx)
         {
-            Stopwatch timer = new Stopwatch();
-            var pingEmbed = new DiscordEmbedBuilder()
+            var timer = new Stopwatch();
+            DiscordEmbedBuilder? pingEmbed = new DiscordEmbedBuilder()
                 .WithTitle($"Ping for Shard {ctx.Client.ShardId}")
                 .WithColor(new DiscordColor(0x08423ec))
                 .WithFooter($"{ctx.Prefix}{ctx.Command.Name}")

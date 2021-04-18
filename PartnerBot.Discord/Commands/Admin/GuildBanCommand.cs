@@ -1,6 +1,5 @@
 ﻿using System.Threading.Tasks;
 
-using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 
@@ -15,7 +14,7 @@ namespace PartnerBot.Discord.Commands.Admin
 
         public GuildBanCommand(GuildBanService ban)
         {
-            _ban = ban;
+            this._ban = ban;
         }
 
         [Command("ban")]
@@ -29,11 +28,11 @@ namespace PartnerBot.Discord.Commands.Admin
             [RemainingText] 
             string? reason = null)
         {
-            var ban = await _ban.BanGuildAsync(guildId, reason);
+            PartnerBot.Core.Entities.Moderation.GuildBan? ban = await this._ban.BanGuildAsync(guildId, reason);
 
             await ctx.RespondAsync($"Guild {ban.GuildId} banned successfully.");
 
-            await _ban.FinalizeBanAsync(ban.GuildId, ban.Reason);
+            await this._ban.FinalizeBanAsync(ban.GuildId, ban.Reason);
 
             await ctx.RespondAsync($"Partner Bot Disconnected from guild {ban.GuildId}.");
         }
@@ -45,7 +44,7 @@ namespace PartnerBot.Discord.Commands.Admin
             [Description("Guild ID to unban")]
             ulong guildId)
         {
-            var completed = await _ban.UnbanGuildAsync(guildId);
+            bool completed = await this._ban.UnbanGuildAsync(guildId);
 
             if (completed)
                 await RespondSuccess("Guild unbanned.");

@@ -5,12 +5,10 @@ using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
 
-using PartnerBot.Core.Entities.Configuration;
-
 namespace PartnerBot.Discord.Commands.Conditions
 {
     /// <summary>
-    /// Marks this a Cessum owner or server admin exclusive command
+    /// Marks this a Cessum owner or server admin exclusive command.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
     public class RequireServerAdminOrOwnerAttribute : RequireCessumOwnerAttribute

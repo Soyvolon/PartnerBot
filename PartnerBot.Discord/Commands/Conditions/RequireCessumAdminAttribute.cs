@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -7,14 +6,10 @@ using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
 
-using Newtonsoft.Json.Linq;
-
-using PartnerBot.Core.Entities.Configuration;
-
 namespace PartnerBot.Discord.Commands.Conditions
 {
     /// <summary>
-    /// Marks this a Cessum admin exclusive command
+    /// Marks this a Cessum admin exclusive command.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public class RequireCessumAdminAttribute : RequireCessumOwnerAttribute
@@ -23,7 +18,7 @@ namespace PartnerBot.Discord.Commands.Conditions
         {
             if (isOwner(ctx.Member.Id)) return true;
 
-            var adminResult = await IsCessumAdmin(ctx);
+            (bool, DiscordMember?) adminResult = await IsCessumAdmin(ctx);
 
             if (adminResult.Item1) return true;
 
@@ -38,9 +33,9 @@ namespace PartnerBot.Discord.Commands.Conditions
 
             try
             {
-                foreach (var c in DiscordBot.Client.ShardClients.Values)
+                foreach (DiscordClient? c in DiscordBot.Client.ShardClients.Values)
                 {
-                    if (c.Guilds.TryGetValue(_pcfg.HomeGuild, out var g))
+                    if (c.Guilds.TryGetValue(this._pcfg.HomeGuild, out DiscordGuild? g))
                     {
                         staffMember = await g.GetMemberAsync(ctx.Member.Id);
                     }

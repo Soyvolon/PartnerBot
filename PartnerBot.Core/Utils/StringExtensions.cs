@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace PartnerBot.Core.Utils
 {
@@ -19,9 +16,9 @@ namespace PartnerBot.Core.Utils
 
             if (string.IsNullOrWhiteSpace(content)) return data;
 
-            var body = content.Split(" \n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+            string[]? body = content.Split(" \n".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
 
-            foreach(var part in body)
+            foreach(string? part in body)
             {
                 if (part.ContainsUrl() || part.ContainsDiscordUrl())
                     data.Add(part);

@@ -5,6 +5,9 @@ using DSharpPlus;
 
 namespace PartnerBot.Core.Entities.Configuration
 {
+    /// <summary>
+    /// Stores the configuration data for Partner Bot
+    /// </summary>
     public class PartnerBotConfiguration
     {
         [JsonPropertyName("token")]
@@ -28,14 +31,14 @@ namespace PartnerBot.Core.Entities.Configuration
         public PartnerBotConfiguration(string token, string prefix, List<ulong> owners, List<ulong> staffRoles, ulong homeGuild, List<PartnerBotDonorRoleConfiguration> donorRoles,
             Permissions botPermissions, string inviteCode)
         {
-            Token = token;
-            Prefix = prefix;
-            Owners = owners;
-            StaffRoles = staffRoles;
-            HomeGuild = homeGuild;
-            DonorRoles = donorRoles;
-            BotPermissions = botPermissions;
-            InviteCode = inviteCode;
+            this.Token = token;
+            this.Prefix = prefix;
+            this.Owners = owners;
+            this.StaffRoles = staffRoles;
+            this.HomeGuild = homeGuild;
+            this.DonorRoles = donorRoles;
+            this.BotPermissions = botPermissions;
+            this.InviteCode = inviteCode;
         }
     }
 
@@ -49,8 +52,8 @@ namespace PartnerBot.Core.Entities.Configuration
         [JsonConstructor]
         public PartnerBotDonorRoleConfiguration(ulong roleId, short weight)
         {
-            RoleId = roleId;
-            Weight = weight;
+            this.RoleId = roleId;
+            this.Weight = weight;
         }
     }
 }

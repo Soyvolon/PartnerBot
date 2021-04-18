@@ -1,17 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Linq;
 using System.Threading.Tasks;
 
 using DSharpPlus;
 using DSharpPlus.Entities;
 
-using PartnerBot.Core.Entities;
 using PartnerBot.Core.Entities.Configuration;
 
 namespace PartnerBot.Core.Services
 {
+    /// <summary>
+    /// The service that handles donor related status checking
+    /// </summary>
     public class DonorService
     {
         public const int HIGHEST_RANK = 3;
@@ -29,28 +28,28 @@ namespace PartnerBot.Core.Services
 
         public DonorService(DiscordShardedClient client, PartnerBotConfiguration pcfg)
         {
-            _client = client;
-            _pcfg = pcfg;
+            this._client = client;
+            this._pcfg = pcfg;
         }
 
         public async Task<int> GetDonorRankAsync(ulong ownerId)
         {
-            if(HomeGuild is null)
+            if(this.HomeGuild is null)
             {
-                foreach (var shard in _client.ShardClients.Values)
-                    if (shard.Guilds.TryGetValue(_pcfg.HomeGuild, out HomeGuild))
+                foreach (DiscordClient? shard in this._client.ShardClients.Values)
+                    if (shard.Guilds.TryGetValue(this._pcfg.HomeGuild, out this.HomeGuild))
                         break;
             }
 
-            if (HomeGuild is not null)
+            if (this.HomeGuild is not null)
             {
-                var m = await HomeGuild.GetMemberAsync(ownerId);
+                DiscordMember? m = await this.HomeGuild.GetMemberAsync(ownerId);
 
                 int rank = 0;
-                foreach (var role in m.Roles)
+                foreach (DiscordRole? role in m.Roles)
                 {
                     PartnerBotDonorRoleConfiguration? r;
-                    if ((r = _pcfg.DonorRoles.FirstOrDefault(x => x.RoleId == role.Id)) is not null)
+                    if ((r = this._pcfg.DonorRoles.FirstOrDefault(x => x.RoleId == role.Id)) is not null)
                     {
                         rank += r.Weight;
                     }

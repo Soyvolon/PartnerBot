@@ -19,21 +19,21 @@ namespace PartnerBot.Discord.Commands
             this.Context = ctx;
             base.BeforeExecutionAsync(ctx);
 
-            Lock = DiscordEmoji.FromName(ctx.Client, ":lock:");
-            Check = DiscordEmoji.FromName(ctx.Client, ":white_check_mark:");
-            Cross = DiscordEmoji.FromName(ctx.Client, ":x:");
+            this.Lock = DiscordEmoji.FromName(ctx.Client, ":lock:");
+            this.Check = DiscordEmoji.FromName(ctx.Client, ":white_check_mark:");
+            this.Cross = DiscordEmoji.FromName(ctx.Client, ":x:");
 
             return Task.CompletedTask;
         }
 
         protected async Task RespondError(string message)
         {
-            await Context.RespondAsync(ErrorBase().WithDescription(message));
+            await this.Context.RespondAsync(ErrorBase().WithDescription(message));
         }
 
         protected async Task RespondSuccess(string message)
         {
-            await Context.RespondAsync(SuccessBase().WithDescription(message));
+            await this.Context.RespondAsync(SuccessBase().WithDescription(message));
         }
 
         public static DiscordEmbedBuilder ErrorBase()
@@ -50,10 +50,10 @@ namespace PartnerBot.Discord.Commands
 
         public async Task InteractTimeout(string message = "Interactivity Timed Out.")
         {
-            var embed = ErrorBase()
+            DiscordEmbedBuilder? embed = ErrorBase()
                 .WithDescription(message);
 
-            await Context.RespondAsync(embed: embed);
+            await this.Context.RespondAsync(embed: embed);
         }
     }
 }

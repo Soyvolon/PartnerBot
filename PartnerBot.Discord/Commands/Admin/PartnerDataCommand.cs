@@ -26,9 +26,9 @@ namespace PartnerBot.Discord.Commands.Admin
         public PartnerDataCommand(IServiceProvider services, DiscordShardedClient client,
             GuildBanService ban)
         {
-            _services = services;
-            _client = client;
-            _ban = ban;
+            this._services = services;
+            this._client = client;
+            this._ban = ban;
         }
 
         [Command("data")]
@@ -36,11 +36,11 @@ namespace PartnerBot.Discord.Commands.Admin
         [RequireCessumStaff]
         public async Task PartnerDataCommandAsync(CommandContext ctx, ulong guildId)
         {
-            var db = _services.GetRequiredService<PartnerDatabaseContext>();
-            var partner = await db.FindAsync<Partner>(guildId);
+            PartnerDatabaseContext? db = this._services.GetRequiredService<PartnerDatabaseContext>();
+            Partner? partner = await db.FindAsync<Partner>(guildId);
 
             DiscordGuild? guild = null;
-            foreach (var shard in _client.ShardClients.Values)
+            foreach (DiscordClient? shard in this._client.ShardClients.Values)
             {
                 if (shard.Guilds.TryGetValue(guildId, out guild))
                     break;
@@ -61,13 +61,13 @@ namespace PartnerBot.Discord.Commands.Admin
                     .AddField("Owner Name:", $"{guild.Owner.Username}#{guild.Owner.Discriminator}", true)
                     .AddField("Owner ID: ", guild.Owner.Id.ToString(), true)
                     .AddField("Owner Mention: ", guild.Owner.Mention, true)
-                    .AddField("Connected on Shard: ", _client.ShardClients.Values.Where(c => c.Guilds.ContainsKey(guild.Id)).First().ShardId.ToString(), true);
+                    .AddField("Connected on Shard: ", this._client.ShardClients.Values.Where(c => c.Guilds.ContainsKey(guild.Id)).First().ShardId.ToString(), true);
                 
                 try
                 {
                     IReadOnlyList<DiscordInvite> invites = await guild.GetInvitesAsync().ConfigureAwait(false);
 
-                    var i = invites.FirstOrDefault(i => !i.IsRevoked);
+                    DiscordInvite? i = invites.FirstOrDefault(i => !i.IsRevoked);
 
                     if (i is null)
                         i = await guild.GetDefaultChannel().CreateInviteAsync();
@@ -103,7 +103,7 @@ namespace PartnerBot.Discord.Commands.Admin
                 await ctx.RespondAsync(dbInfo);
             }
 
-            var ban = await _ban.GetBanAsync(guildId);
+            PartnerBot.Core.Entities.Moderation.GuildBan? ban = await this._ban.GetBanAsync(guildId);
 
             if(ban is not null)
             {

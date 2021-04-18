@@ -6,12 +6,12 @@ namespace PartnerBot.Core.Utils
     {
         public static void Shuffle<T>(this IList<T> list)
         {
-            var count = list.Count;
-            var last = count - 1;
-            for (var i = 0; i < last; ++i)
+            int count = list.Count;
+            int last = count - 1;
+            for (int i = 0; i < last; ++i)
             {
-                var r = ThreadSafeRandom.Next(i, count);
-                var tmp = list[i];
+                int r = ThreadSafeRandom.Next(i, count);
+                T? tmp = list[i];
                 list[i] = list[r];
                 list[r] = tmp;
             }

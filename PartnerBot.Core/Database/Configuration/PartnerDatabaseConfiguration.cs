@@ -4,6 +4,9 @@ using System.Text.Json.Serialization;
 
 namespace PartnerBot.Core.Database.Configuration
 {
+    /// <summary>
+    /// Holds the data source for the Partner Bot Database
+    /// </summary>
     public class PartnerDatabaseConfiguration
     {
         [JsonPropertyName("partnerbot_data_source")]
@@ -12,7 +15,7 @@ namespace PartnerBot.Core.Database.Configuration
         [JsonConstructor]
         public PartnerDatabaseConfiguration(string partnerbotDataSource)
         {
-            PartnerbotDataSource = partnerbotDataSource;
+            this.PartnerbotDataSource = partnerbotDataSource;
         }
     }
 }

@@ -18,22 +18,22 @@ namespace PartnerBot.Discord.Commands.Utility
 
         public InviteCommand(PartnerBotConfiguration config, DiscordShardedClient client)
         {
-            _client = client;
-            _config = config;
+            this._client = client;
+            this._config = config;
         }
 
         [Command("invite")]
         [Description("Invite Partner Bot!")]
         public async Task InviteCommandAsync(CommandContext ctx)
         {
-            if (invite is null)
+            if (this.invite is null)
             {
-                invite = $"https://discord.com/api/oauth2/authorize?client_id={_client.CurrentApplication.Id}&permissions={(uint)_config.BotPermissions}&scope=bot%20applications.commands";
-                invite = $"Invite Partner Bot [here]({invite})";
+                this.invite = $"https://discord.com/api/oauth2/authorize?client_id={this._client.CurrentApplication.Id}&permissions={(uint)this._config.BotPermissions}&scope=bot%20applications.commands";
+                this.invite = $"Invite Partner Bot [here]({this.invite})";
             }
 
             await ctx.RespondAsync(new DiscordEmbedBuilder()
-                .WithDescription(invite)
+                .WithDescription(this.invite)
                 .WithColor(Color_PartnerBotMagenta));
         }
     }

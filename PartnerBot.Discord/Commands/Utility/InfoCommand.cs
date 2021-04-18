@@ -17,8 +17,8 @@ namespace PartnerBot.Discord.Commands.Utility
 
         public InfoCommand(DiscordShardedClient client, PartnerManagerService partner)
         {
-            _client = client;
-            _partner = partner;
+            this._client = client;
+            this._partner = partner;
         }
 
         [Command("info")]
@@ -28,10 +28,10 @@ namespace PartnerBot.Discord.Commands.Utility
             long guildCount = 0;
             long memberCount = 0;
 
-            foreach (var shard in _client.ShardClients.Values)
+            foreach (DiscordClient? shard in this._client.ShardClients.Values)
             {
                 guildCount += shard.Guilds.Count;
-                foreach(var g in shard.Guilds.Values)
+                foreach(DiscordGuild? g in shard.Guilds.Values)
                 {
                     memberCount += g.MemberCount;
                 }
@@ -45,7 +45,7 @@ namespace PartnerBot.Discord.Commands.Utility
                     $"Maximum Members Reached: {memberCount}")
                 .AddField($"{ctx.Guild.Name} Info",
                     $"Shard: {ctx.Client.ShardId}\n" +
-                    $"Active: {await _partner.GetPartnerElementAsync(ctx.Guild.Id, x => x.Active)}")
+                    $"Active: {await this._partner.GetPartnerElementAsync(ctx.Guild.Id, x => x.Active)}")
                 .AddField($"Developer(s):",
                     "Soyvolon")
                 .AddField($"Contributor(s):",

@@ -7,6 +7,9 @@ using PartnerBot.Core.Services;
 
 namespace PartnerBot.Core.Entities
 {
+    /// <summary>
+    /// The data class for a Partner Match. Contains data for both the local Partner (parent class) and the match.
+    /// </summary>
     public class PartnerData : Partner
     {
         public Partner Match { get; internal set; }
@@ -14,13 +17,13 @@ namespace PartnerBot.Core.Entities
 
         public PartnerData(Partner self, Partner match, Partner? extra = null)
         {
-            foreach (var prop in self.GetType().GetProperties())
+            foreach (System.Reflection.PropertyInfo? prop in self.GetType().GetProperties())
             {
-                this.GetType().GetProperty(prop.Name)?.SetValue(this, prop.GetValue(self, null), null);
+                GetType().GetProperty(prop.Name)?.SetValue(this, prop.GetValue(self, null), null);
             }
 
-            Match = match;
-            ExtraMessage = extra;
+            this.Match = match;
+            this.ExtraMessage = extra;
         }
 
         public async Task ExecuteAsync(DiscordRestClient rest, PartnerSenderArguments senderArguments)
@@ -31,37 +34,37 @@ namespace PartnerBot.Core.Entities
                 return;
             }
 
-            bool vanity = Match.VanityInvite is not null && Match.DonorRank >= DonorService.VANITY_LIMIT;
-            bool attachEmbeds = Match.DonorRank >= DonorService.EMBED_LIMIT;
+            bool vanity = this.Match.VanityInvite is not null && this.Match.DonorRank >= DonorService.VANITY_LIMIT;
+            bool attachEmbeds = this.Match.DonorRank >= DonorService.EMBED_LIMIT;
 
-            var hook = new DiscordWebhookBuilder()
-                .WithContent($"{Match.Message}\n\n" +
+            DiscordWebhookBuilder? hook = new DiscordWebhookBuilder()
+                .WithContent($"{this.Match.Message}\n\n" +
                 $"https://discord.gg/" +
-                $"{(vanity ? Match.VanityInvite : Match.Invite)}")
-                .WithUsername($"{Match.GuildName} | Partner Bot");
+                $"{(vanity ? this.Match.VanityInvite : this.Match.Invite)}")
+                .WithUsername($"{this.Match.GuildName} | Partner Bot");
 
             if (attachEmbeds)
             {
-                if (Match.DonorRank >= DonorService.HIGHEST_RANK)
-                    hook.AddEmbeds(Match.MessageEmbeds);
-                else if(Match.MessageEmbeds.Count > 0)
-                    hook.AddEmbed(Match.MessageEmbeds[0]);
+                if (this.Match.DonorRank >= DonorService.HIGHEST_RANK)
+                    hook.AddEmbeds(this.Match.MessageEmbeds);
+                else if(this.Match.MessageEmbeds.Count > 0)
+                    hook.AddEmbed(this.Match.MessageEmbeds[0]);
             }
 
             hook.AddEmbed(new DiscordEmbedBuilder()
                     .WithColor(DiscordColor.Gray)
                     .WithTitle("Partner Bot Advertisment")
-                    .WithDescription($"**ID:** {Match.GuildId}")
-                    .WithImageUrl(Match.Banner));
+                    .WithDescription($"**ID:** {this.Match.GuildId}")
+                    .WithImageUrl(this.Match.Banner));
 
-            if (!string.IsNullOrWhiteSpace(Match.GuildIcon))
-                hook.WithAvatarUrl(Match.GuildIcon);
+            if (!string.IsNullOrWhiteSpace(this.Match.GuildIcon))
+                hook.WithAvatarUrl(this.Match.GuildIcon);
 
-            await rest.ExecuteWebhookAsync(WebhookId, WebhookToken, hook);
+            await rest.ExecuteWebhookAsync(this.WebhookId, this.WebhookToken, hook);
 
-            if(ExtraMessage is not null)
+            if(this.ExtraMessage is not null)
             {
-                var eDat = new PartnerData(this, ExtraMessage);
+                var eDat = new PartnerData(this, this.ExtraMessage);
 
                 await eDat.ExecuteAsync(rest, senderArguments);
             }
@@ -69,31 +72,31 @@ namespace PartnerBot.Core.Entities
 
         private async Task ExecuteStressTestMessage(DiscordRestClient rest)
         {
-            var hook = new DiscordWebhookBuilder()
-                .WithContent($"This Channel: <#{GuildId}>" +
+            DiscordWebhookBuilder? hook = new DiscordWebhookBuilder()
+                .WithContent($"This Channel: <#{this.GuildId}>" +
                 "\n```\n" +
                 "STRESS TEST\n\n" +
-                $"This Partner ({GuildName}):\n" +
-                $"ID: {GuildId}\n" +
-                $"Tags: {string.Join(", ", Tags)}\n" +
-                $"Size: {UserCount}\n" +
-                $"Donor Rank: {DonorRank}\n\n" +
-                $"Other Partner ({Match.GuildName}):\n" +
-                $"ID: {Match.GuildId}\n" +
-                $"Tags: {string.Join(", ", Match.Tags)}\n" +
-                $"Size: {Match.UserCount}\n" +
-                $"Donor Rank: {Match.DonorRank}\n" +
-                $"Extra: {ExtraMessage}" +
+                $"This Partner ({this.GuildName}):\n" +
+                $"ID: {this.GuildId}\n" +
+                $"Tags: {string.Join(", ", this.Tags)}\n" +
+                $"Size: {this.UserCount}\n" +
+                $"Donor Rank: {this.DonorRank}\n\n" +
+                $"Other Partner ({this.Match.GuildName}):\n" +
+                $"ID: {this.Match.GuildId}\n" +
+                $"Tags: {string.Join(", ", this.Match.Tags)}\n" +
+                $"Size: {this.Match.UserCount}\n" +
+                $"Donor Rank: {this.Match.DonorRank}\n" +
+                $"Extra: {this.ExtraMessage}" +
                 $"\n```\n" +
-                $"Other Channel: <#{Match.GuildId}>")
+                $"Other Channel: <#{this.Match.GuildId}>")
                 .AddEmbed(new DiscordEmbedBuilder()
                     .WithColor(DiscordColor.Gray)
                     .WithTitle("Partner Bot Advertisment")
-                    .WithDescription($"**ID:** {Match.GuildId}")
-                    .WithImageUrl(Match.Banner)
+                    .WithDescription($"**ID:** {this.Match.GuildId}")
+                    .WithImageUrl(this.Match.Banner)
                 );
 
-            await rest.ExecuteWebhookAsync(WebhookId, WebhookToken, hook);
+            await rest.ExecuteWebhookAsync(this.WebhookId, this.WebhookToken, hook);
         }
     }
 }

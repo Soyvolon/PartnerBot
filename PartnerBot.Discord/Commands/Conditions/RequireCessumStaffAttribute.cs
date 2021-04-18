@@ -1,16 +1,13 @@
 ﻿using System;
 using System.Threading.Tasks;
 
-using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
-
-using PartnerBot.Core.Entities.Configuration;
 
 namespace PartnerBot.Discord.Commands.Conditions
 {
     /// <summary>
-    /// Marks this a Cessum staff exclusive command
+    /// Marks this a Cessum staff exclusive command.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public class RequireCessumStaffAttribute : RequireCessumAdminAttribute
@@ -19,7 +16,7 @@ namespace PartnerBot.Discord.Commands.Conditions
         {
             if (isOwner(ctx.Member.Id)) return true;
 
-            var adminResult = await IsCessumAdmin(ctx);
+            (bool, DiscordMember?) adminResult = await IsCessumAdmin(ctx);
 
             if (adminResult.Item1) return true;
 
@@ -27,7 +24,7 @@ namespace PartnerBot.Discord.Commands.Conditions
             {
                 DiscordMember member = adminResult.Item2;
                 foreach (DiscordRole role in member.Roles)
-                    if (_pcfg.StaffRoles.Contains(role.Id))
+                    if (this._pcfg.StaffRoles.Contains(role.Id))
                         return true;
             }
 

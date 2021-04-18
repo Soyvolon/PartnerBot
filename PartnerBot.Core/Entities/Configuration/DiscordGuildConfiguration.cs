@@ -2,6 +2,9 @@
 
 namespace PartnerBot.Core.Entities.Configuration
 {
+    /// <summary>
+    /// Stores saved data about a guild.
+    /// </summary>
     public class DiscordGuildConfiguration
     {
         [Key]
@@ -10,8 +13,8 @@ namespace PartnerBot.Core.Entities.Configuration
 
         public DiscordGuildConfiguration()
         {
-            GuildId = 0;
-            Prefix = "-^-";
+            this.GuildId = 0;
+            this.Prefix = "-^-";
         }
     }
 }

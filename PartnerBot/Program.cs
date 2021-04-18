@@ -75,7 +75,6 @@ namespace PartnerBot
                 .AddSingleton<PartnerManagerService>()
                 .AddSingleton<GuildVerificationService>()
                 .AddSingleton<PartnerSenderService>()
-                .AddSingleton<ClientLoggingService>()
                 .AddSingleton<CommandErrorHandlingService>()
                 .AddSingleton<CommandHandlingService>()
                 .AddSingleton<DiscordBot>()
@@ -86,11 +85,11 @@ namespace PartnerBot
 
             IServiceProvider provider = services.BuildServiceProvider();
 
-            var db = provider.GetRequiredService<PartnerDatabaseContext>();
+            PartnerDatabaseContext? db = provider.GetRequiredService<PartnerDatabaseContext>();
 
             await ApplyDatabaseMigrations(db);
 
-            var bot = provider.GetRequiredService<DiscordBot>();
+            DiscordBot? bot = provider.GetRequiredService<DiscordBot>();
 
             await bot.InitalizeAsync();
 

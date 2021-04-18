@@ -3,6 +3,9 @@ using System.Text.Json.Serialization;
 
 namespace PartnerBot.Core.Entities
 {
+    /// <summary>
+    /// Data for a development stress test channel.
+    /// </summary>
     public class DevelopmentStressTestChannel
     {
         [JsonPropertyName("channel_id")]

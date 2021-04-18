@@ -8,7 +8,6 @@ using DSharpPlus.CommandsNext.Attributes;
 using Microsoft.Extensions.DependencyInjection;
 
 using PartnerBot.Core.Database;
-using PartnerBot.Core.Entities;
 using PartnerBot.Core.Entities.Configuration;
 
 namespace PartnerBot.Discord.Commands.Utility
@@ -19,7 +18,7 @@ namespace PartnerBot.Discord.Commands.Utility
 
         public PrefixCommand(IServiceProvider services)
         {
-            _services = services;
+            this._services = services;
         }
 
         [Command("prefix")]
@@ -34,9 +33,9 @@ namespace PartnerBot.Discord.Commands.Utility
                 await RespondError("The new prefix cannot be null or white space.");
                 return;
             }
-            
-            var db = _services.GetRequiredService<PartnerDatabaseContext>();
-            var config = await db.FindAsync<DiscordGuildConfiguration>(ctx.Guild.Id);
+
+            PartnerDatabaseContext? db = this._services.GetRequiredService<PartnerDatabaseContext>();
+            DiscordGuildConfiguration? config = await db.FindAsync<DiscordGuildConfiguration>(ctx.Guild.Id);
 
             config.Prefix = newPrefix;
 

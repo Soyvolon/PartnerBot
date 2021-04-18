@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
+﻿
 using DSharpPlus;
 using DSharpPlus.CommandsNext.Attributes;
 
@@ -20,8 +15,8 @@ namespace PartnerBot.Discord.Commands.Testing
 
         public TestCommandGroup(PartnerSenderService sender, DiscordShardedClient client)
         {
-            _sender = sender;
-            _client = client;
+            this._sender = sender;
+            this._client = client;
         }
     }
 }

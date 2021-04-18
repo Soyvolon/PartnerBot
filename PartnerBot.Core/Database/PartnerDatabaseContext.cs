@@ -26,14 +26,16 @@ namespace PartnerBot.Core.Database
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            var partner = modelBuilder.Entity<Partner>();
+            // Parse invalid property values into database saveable values and back.
+            Microsoft.EntityFrameworkCore.Metadata.Builders.EntityTypeBuilder<Partner>? partner = modelBuilder.Entity<Partner>();
             partner.HasKey(x => x.GuildId);
             partner.Property(x => x.BaseColor)
                 .HasConversion(
                     v => v.Value,
                     v => new(v));
             partner.Property(x => x.MessageEmbeds)
-                .HasConversion( // use newtonsoft.json here because DSharpPlus uses it to define the embed.
+                .HasConversion( 
+                // Use newtonsoft.json here because DSharpPlus uses it to define the embed.
                     v => JsonConvert.SerializeObject(v),
                     v => JsonConvert.DeserializeObject<List<DiscordEmbed>>(v) ?? new());
             partner.Property(x => x.Tags)

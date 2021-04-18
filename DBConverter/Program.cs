@@ -2,17 +2,14 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text.Json;
 using System.Threading.Tasks;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 using PartnerBot.Core.Database;
-using PartnerBot.Core.Database.Configuration;
 
 namespace DBConverter
 {
@@ -39,10 +36,10 @@ namespace DBConverter
                         .Build();
                 });
 
-            var provider = services.BuildServiceProvider();
+            ServiceProvider provider = services.BuildServiceProvider();
 
-            var logger = provider.GetRequiredService<ILogger<Program>>();
-            var config = provider.GetRequiredService<IConfiguration>();
+            ILogger<Program> logger = provider.GetRequiredService<ILogger<Program>>();
+            IConfiguration config = provider.GetRequiredService<IConfiguration>();
 
             try
             {
@@ -50,7 +47,7 @@ namespace DBConverter
 
                 services.AddDbContext<partnerbotContext>(options =>
                     {
-                        var cstring = $"Server={config["Database:Remote:Host"]};" +
+                        string cstring = $"Server={config["Database:Remote:Host"]};" +
                             $"Port={config["Database:Remote:Port"]};" +
                             $"Database={config["Database:Remote:Database"]};" +
                             $"Uid={config["Database:Remote:Username"]};" +
@@ -67,15 +64,15 @@ namespace DBConverter
 
                 logger.LogInformation("Starting data transfer...");
 
-                var remote = provider.GetRequiredService<partnerbotContext>();
+                partnerbotContext remote = provider.GetRequiredService<partnerbotContext>();
 
-                var local = provider.GetRequiredService<PartnerDatabaseContext>();
+                PartnerDatabaseContext local = provider.GetRequiredService<PartnerDatabaseContext>();
                 await ApplyDatabaseMigrations(local);
 
                 HashSet<ulong> added = new();
                 await remote.Partnerlists.ForEachAsync(async (x) =>
                 {
-                    var uid = (ulong)x.GuildId;
+                    ulong uid = (ulong)x.GuildId;
                     if (!added.Add(uid)) return;
 
                     await local.Partners.AddAsync(new()
@@ -101,7 +98,7 @@ namespace DBConverter
                 added = new();
                 await remote.Guildbans.ForEachAsync(async (x) =>
                 {
-                    var id = (ulong)x.Id;
+                    ulong id = (ulong)x.Id;
                     if (!added.Add(id)) return;
 
                     await local.GuildBans.AddAsync(new()
@@ -119,7 +116,7 @@ namespace DBConverter
                 added = new();
                 await remote.Guildconfigs.ForEachAsync(async (x) =>
                 {
-                    var gid = (ulong)x.GuildId;
+                    ulong gid = (ulong)x.GuildId;
                     if (!added.Add(gid)) return;
 
                     await local.GuildConfigurations.AddAsync(new()

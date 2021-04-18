@@ -1,7 +1,8 @@
-﻿using System;
-
-namespace PartnerBot.Core.Entities
+﻿namespace PartnerBot.Core.Entities
 {
+    /// <summary>
+    /// A set of arguemtns related to the Partner Sender
+    /// </summary>
     public class PartnerSenderArguments
     {
         public int DonorRun { get; set; } = 0;
@@ -11,10 +12,10 @@ namespace PartnerBot.Core.Entities
 
         public override string ToString()
         {
-            return $"SenderArgs:[DonorRun: {DonorRun}," +
-                $" IgnoreOwnerMatch: {IgnoreOwnerMatch}," +
-                $" IgnoreCacheMatch: {IgnoreCacheMatch}," +
-                $" DevelopmentStressTest: {DevelopmentStressTest}]";
+            return $"SenderArgs:[DonorRun: {this.DonorRun}," +
+                $" IgnoreOwnerMatch: {this.IgnoreOwnerMatch}," +
+                $" IgnoreCacheMatch: {this.IgnoreCacheMatch}," +
+                $" DevelopmentStressTest: {this.DevelopmentStressTest}]";
         }
     }
 }

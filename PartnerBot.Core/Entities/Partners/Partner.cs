@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.Collections.Generic;
 
 using DSharpPlus.Entities;
 
@@ -9,6 +6,9 @@ using PartnerBot.Core.Utils;
 
 namespace PartnerBot.Core.Entities
 {
+    /// <summary>
+    /// The core class for a Partner
+    /// </summary>
     public class Partner
     {
         public ulong GuildId { get; set; } = 0;
@@ -46,9 +46,9 @@ namespace PartnerBot.Core.Entities
         /// <returns>True if the bot has been setup before.</returns>
         public bool IsSetup()
         {
-            return !string.IsNullOrWhiteSpace(WebhookToken)
-                && WebhookId != 0
-                && !string.IsNullOrWhiteSpace(Invite);
+            return !string.IsNullOrWhiteSpace(this.WebhookToken)
+                && this.WebhookId != 0
+                && !string.IsNullOrWhiteSpace(this.Invite);
         }
 
         public void ModifyToDonorRank()
@@ -60,57 +60,57 @@ namespace PartnerBot.Core.Entities
         {
             int links = 0;
 
-            var messageUrls = Message.GetUrls();
+            IReadOnlyList<string>? messageUrls = this.Message.GetUrls();
 
-            foreach(var l in messageUrls)
+            foreach(string? l in messageUrls)
             {
-                if(++links > DonorRank)
+                if(++links > this.DonorRank)
                 {
-                    Message.Replace(l, string.Empty);
+                    this.Message.Replace(l, string.Empty);
                 }
             }
 
-            foreach(var embed in MessageEmbeds)
+            foreach(DiscordEmbed? embed in this.MessageEmbeds)
             {
-                var eMsgLinks = embed.Description.GetUrls();
+                IReadOnlyList<string>? eMsgLinks = embed.Description.GetUrls();
 
-                foreach (var l in eMsgLinks)
+                foreach (string? l in eMsgLinks)
                 {
-                    if (++links > DonorRank)
+                    if (++links > this.DonorRank)
                     {
                         embed.Description.Replace(l, string.Empty);
                     }
                 }
 
-                foreach(var field in embed.Fields)
+                foreach(DiscordEmbedField? field in embed.Fields)
                 {
-                    var fLinks = field.Value.GetUrls();
+                    IReadOnlyList<string>? fLinks = field.Value.GetUrls();
 
-                    foreach (var l in fLinks)
+                    foreach (string? l in fLinks)
                     {
-                        if (++links > DonorRank)
+                        if (++links > this.DonorRank)
                         {
                             field.Value.Replace(l, string.Empty);
                         }
                     }
 
-                    var titleLinks = field.Name.GetUrls();
+                    IReadOnlyList<string>? titleLinks = field.Name.GetUrls();
 
-                    foreach (var l in titleLinks)
+                    foreach (string? l in titleLinks)
                     {
                         field.Name.Replace(l, string.Empty);
                     }
                 }
 
-                var tLinks = embed.Title.GetUrls();
+                IReadOnlyList<string>? tLinks = embed.Title.GetUrls();
 
-                foreach (var l in tLinks)
+                foreach (string? l in tLinks)
                 {
                     embed.Title.Replace(l, string.Empty);
                 }
             }
 
-            LinksUsed = links > DonorRank ? DonorRank : links;
+            this.LinksUsed = links > this.DonorRank ? this.DonorRank : links;
         }
     }
 }

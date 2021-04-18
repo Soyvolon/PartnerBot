@@ -46,47 +46,47 @@ namespace PartnerBot.Discord
             GuildVerificationService verify, PartnerBotConfiguration pcfg,
             IServiceProvider serviceProvider)
         {
-            _partnerSender = partnerSender;
-            _client = client;
-            _rest = rest;
-            _error = error;
-            _command = command;
-            _verify = verify;
-            _serviceProvider = serviceProvider;
+            this._partnerSender = partnerSender;
+            this._client = client;
+            this._rest = rest;
+            this._error = error;
+            this._command = command;
+            this._verify = verify;
+            this._serviceProvider = serviceProvider;
 
-            Client = _client;
+            Client = this._client;
             PbCfg = pcfg;
-            Services = _serviceProvider;
+            Services = this._serviceProvider;
         }
 
         public async Task InitalizeAsync()
         {
-            _client.MessageCreated += _command.Client_MessageCreated;
-            _client.Ready += Client_Ready;
+            this._client.MessageCreated += this._command.Client_MessageCreated;
+            this._client.Ready += Client_Ready;
 
-            var cnext = await _client.UseCommandsNextAsync(GetCNextConfig());
+            System.Collections.Generic.IReadOnlyDictionary<int, CommandsNextExtension>? cnext = await this._client.UseCommandsNextAsync(GetCNextConfig());
 
-            foreach(var c in cnext.Values)
+            foreach(CommandsNextExtension? c in cnext.Values)
             {
                 c.RegisterCommands(Assembly.GetAssembly(typeof(CommandHandlingService)));
 
-                c.CommandErrored += _error.Client_CommandErrored;
-                c.CommandExecuted += _error.Client_CommandExecuted;
+                c.CommandErrored += this._error.Client_CommandErrored;
+                c.CommandExecuted += this._error.Client_CommandExecuted;
             }
 
-            var interact = await _client.UseInteractivityAsync(new());
+            System.Collections.Generic.IReadOnlyDictionary<int, DSharpPlus.Interactivity.InteractivityExtension>? interact = await this._client.UseInteractivityAsync(new());
 
-            await _rest.InitializeAsync();
+            await this._rest.InitializeAsync();
 
-            await _verify.InitalizeAsync();
+            await this._verify.InitalizeAsync();
         }
 
         private Task Client_Ready(DiscordClient sender, DSharpPlus.EventArgs.ReadyEventArgs e)
         {
             _ = Task.Run(() =>
             {
-                _verify.Start();
-                PartnerTimer = new(OnPartnerRunTimer, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+                this._verify.Start();
+                this.PartnerTimer = new(OnPartnerRunTimer, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
             });
 
             sender.Logger.LogInformation("Client Ready");
@@ -96,7 +96,7 @@ namespace PartnerBot.Discord
 
         public async Task StartAsync()
         {
-            await _client.StartAsync();
+            await this._client.StartAsync();
         }
 
         private CommandsNextConfiguration GetCNextConfig()
@@ -116,49 +116,49 @@ namespace PartnerBot.Discord
 
         private void OnPartnerRunTimer(object? data)
         {
-            var chour = DateTime.UtcNow.Hour;
-            if (chour > lastHour)
+            int chour = DateTime.UtcNow.Hour;
+            if (chour > this.lastHour)
             {
-                var min = DateTime.UtcNow.Minute;
+                int min = DateTime.UtcNow.Minute;
 
-                if(min >= 0 && min < 15 && !firstRun)
+                if(min >= 0 && min < 15 && !this.firstRun)
                 {
-                    _ = Task.Run(async () => await _partnerSender.ExecuteAsync(new()
+                    _ = Task.Run(async () => await this._partnerSender.ExecuteAsync(new()
                     {
                         DonorRun = 0
                     }));
 
-                    firstRun = true;
+                    this.firstRun = true;
                 }
-                else if(min >= 15 && min < 30 && !secondRun)
+                else if(min >= 15 && min < 30 && !this.secondRun)
                 {
-                    _ = Task.Run(async () => await _partnerSender.ExecuteAsync(new()
+                    _ = Task.Run(async () => await this._partnerSender.ExecuteAsync(new()
                     {
                         DonorRun = 1
                     }));
 
-                    secondRun = true;
+                    this.secondRun = true;
                 }
-                else if(min >= 30 && min < 45 && !thirdRun)
+                else if(min >= 30 && min < 45 && !this.thirdRun)
                 {
-                    _ = Task.Run(async () => await _partnerSender.ExecuteAsync(new()
+                    _ = Task.Run(async () => await this._partnerSender.ExecuteAsync(new()
                     {
                         DonorRun = 2
                     }));
 
-                    thirdRun = true;
+                    this.thirdRun = true;
                 }
                 else
                 {
-                    _ = Task.Run(async () => await _partnerSender.ExecuteAsync(new()
+                    _ = Task.Run(async () => await this._partnerSender.ExecuteAsync(new()
                     {
                         DonorRun = 3
                     }));
 
-                    lastHour = chour;
-                    firstRun = false;
-                    secondRun = false;
-                    thirdRun = false;
+                    this.lastHour = chour;
+                    this.firstRun = false;
+                    this.secondRun = false;
+                    this.thirdRun = false;
                 }
             }
         }

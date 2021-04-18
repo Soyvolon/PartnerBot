@@ -17,6 +17,9 @@ using Soyvolon.Utilities.Extensions.IList;
 
 namespace PartnerBot.Core.Services
 {
+    /// <summary>
+    /// The service responsible for sending Partners
+    /// </summary>
     public class PartnerSenderService
     {
         private readonly PartnerDatabaseContext _database;
@@ -28,51 +31,51 @@ namespace PartnerBot.Core.Services
 
         public PartnerSenderService(PartnerDatabaseContext database, DiscordRestClient rest)
         {
-            _database = database;
-            _rest = rest;
-            _logger = _rest.Logger;
+            this._database = database;
+            this._rest = rest;
+            this._logger = this._rest.Logger;
 
-            PartnerDataQueue = new();
-            Cache = new();
+            this.PartnerDataQueue = new();
+            this.Cache = new();
         }
 
         public async Task ExecuteAsync(PartnerSenderArguments senderArgs)
         {
-            _logger.LogInformation($"Started partner run: {senderArgs}");
+            this._logger.LogInformation($"Started partner run: {senderArgs}");
 
             (List<Partner>, List<Partner>, List<Partner>) active;
             if (senderArgs.DevelopmentStressTest)
             {
-                // get the development stress test data set ...
+                // Get the development stress test data set ...
                 active = await GetDevelopmentStressTestDataset(senderArgs);
             }
             else
             {
-                // get all active partners ...
+                // Get all active partners ...
                 active = await GetActivePartners(senderArgs);
             }
 
-            _logger.LogInformation($"Partner sets received. Full: {active.Item1.Count} | Run: {active.Item2.Count} | Extra: {active.Item3.Count}");
+            this._logger.LogInformation($"Partner sets received. Full: {active.Item1.Count} | Run: {active.Item2.Count} | Extra: {active.Item3.Count}");
 
             if (active.Item1.Count <= 0 || active.Item2.Count <= 0)
                 return;
 
-            // ... pair up active partners and queue them ...
+            // ... Pair up active partners and queue them ...
             await QueuePartnerData(active.Item1, active.Item2, active.Item3, senderArgs);
 
-            _logger.LogInformation($"Partner data queued. Queue Count: {PartnerDataQueue.Count}");
+            this._logger.LogInformation($"Partner data queued. Queue Count: {this.PartnerDataQueue.Count}");
 
-            // ... then execute the queue (off with its head!)
+            // ... Then execute the queue (off with its head!).
             await ExecuteWebhooksAsync(senderArgs);
 
-            _logger.LogInformation($"Partner webhooks are started.");
+            this._logger.LogInformation($"Partner webhooks are started.");
         }
 
         private async Task ExecuteWebhooksAsync(PartnerSenderArguments senderArguments)
         {
-            while(PartnerDataQueue.TryDequeue(out var data))
+            while(this.PartnerDataQueue.TryDequeue(out PartnerData? data))
             {
-                await data.ExecuteAsync(_rest, senderArguments);
+                await data.ExecuteAsync(this._rest, senderArguments);
             }
         }
 
@@ -81,7 +84,7 @@ namespace PartnerBot.Core.Services
             List<Partner> baseSet = new();
             List<Partner> donorSet = new();
             List<Partner> extarSet = new();
-            await _database.Partners.AsNoTracking().ForEachAsync(x =>
+            await this._database.Partners.AsNoTracking().ForEachAsync(x =>
             {
                 if (x.Active)
                 {
@@ -99,21 +102,19 @@ namespace PartnerBot.Core.Services
         }
 
         #region Partner Matching
-
-        // TODO: check for pairs that don't find a match, filter then into the fullset and grabe a random partner without knowing its final value.
         private async Task QueuePartnerData(List<Partner> runningPartners, List<Partner> fullSet, List<Partner> extraSet, PartnerSenderArguments senderArguments)
         {
-            // ... then build the task storage for our closeness tasks ...
+            // Build the task storage for our closeness tasks ...
             List<Task<(ulong, List<(float, Partner)>)>> MatchClosenessTasks = new();
             // ... then get a closeness list for each partner ...
-            foreach (var p in runningPartners)
+            foreach (Partner? p in runningPartners)
             { // ... by letting the get match closeness method run for each partner ...
                 MatchClosenessTasks.Add(GetMatchCloseness(p, runningPartners, senderArguments));
             }
             // ... while that runs, lets scramble and bag all of the partners ...
 
             // ... lets get our list ...
-            var pList = runningPartners;
+            List<Partner>? pList = runningPartners;
             // ... then randomize it ...
             pList.Shuffle();
             // ... so we create the match bag with it ...
@@ -122,9 +123,9 @@ namespace PartnerBot.Core.Services
             // ... once we have the bag, we create the storage for the closenss results ...
             ConcurrentDictionary<ulong, List<(float, Partner)>> ClosenessResults = new();
             // ... then wait for the closeness tasks to finish ...
-            foreach (var t in MatchClosenessTasks)
+            foreach (Task<(ulong, List<(float, Partner)>)>? t in MatchClosenessTasks)
             {
-                var res = await t;
+                (ulong, List<(float, Partner)>) res = await t;
                 ClosenessResults[res.Item1] = res.Item2;
             }
             // ... then create a hashset to store the matched guilds ...
@@ -133,27 +134,27 @@ namespace PartnerBot.Core.Services
 
             List<Partner>? fullList = null;
 
-            while(MatchBag.TryTake(out var p))
+            while(MatchBag.TryTake(out Partner? p))
             {
                 // ... skip this instance if this guild has already been matched ...
                 if (MatchedSet.Contains(p.GuildId)) continue;
 
                 // ... otherwise, get the match results ...
-                var res = ClosenessResults[p.GuildId];
+                List<(float, Partner)>? res = ClosenessResults[p.GuildId];
                 // ... for all the items in the results ...
                 bool matched = false;
-                foreach(var i in res)
+                foreach((float, Partner) i in res)
                 {
                     // ... skip the item if it has been matched ...
                     if (MatchedSet.Contains(i.Item2.GuildId)) continue;
 
                     // ... if none of those are true, we have a match, so lets save it ...
-                    var homeMatch = p.BuildData(i.Item2, null);
-                    var awayMatch = i.Item2.BuildData(p, null);
+                    PartnerData? homeMatch = p.BuildData(i.Item2, null);
+                    PartnerData? awayMatch = i.Item2.BuildData(p, null);
 
                     // ... then we queue these matches ...
-                    PartnerDataQueue.Enqueue(homeMatch);
-                    PartnerDataQueue.Enqueue(awayMatch);
+                    this.PartnerDataQueue.Enqueue(homeMatch);
+                    this.PartnerDataQueue.Enqueue(awayMatch);
 
                     // ... finally store the matches ...
                     MatchedSet.Add(p.GuildId);
@@ -174,11 +175,11 @@ namespace PartnerBot.Core.Services
                 if (fullSet.Count <= 1) return;
 
                 // ... then get a random value that does not fail any paring options (no same owner, not cached) ...
-                var away = PickPartner(p, fullList, senderArguments);
-                // looks like no good match was found, go to next partner.
+                Partner? away = PickPartner(p, fullList, senderArguments);
+                // Looks like no good match was found, go to next partner.
                 if (away is null) continue;
 
-                var homeMatchAlt = p.BuildData(away, null);
+                PartnerData? homeMatchAlt = p.BuildData(away, null);
 
                 Partner? extra = null;
 
@@ -188,7 +189,7 @@ namespace PartnerBot.Core.Services
 
                     while(extra is null && breakout++ < 10)
                     {
-                        var temp = extraSet.GetRandom();
+                        Partner? temp = extraSet.GetRandom();
 
                         if (away.OwnerId != temp.OwnerId)
                         {
@@ -200,16 +201,16 @@ namespace PartnerBot.Core.Services
                 if (MatchedSet.Contains(away.GuildId))
                     extra = null;
 
-                var awayMatchAlt = away.BuildData(p, extra);
+                PartnerData? awayMatchAlt = away.BuildData(p, extra);
 
                 // ... then we queue these matches ...
-                PartnerDataQueue.Enqueue(homeMatchAlt);
-                PartnerDataQueue.Enqueue(awayMatchAlt);
+                this.PartnerDataQueue.Enqueue(homeMatchAlt);
+                this.PartnerDataQueue.Enqueue(awayMatchAlt);
 
                 // ... finally store the matches ...
                 MatchedSet.Add(p.GuildId);
                 MatchedSet.Add(away.GuildId);
-                // ... if cacheing is not turned off, cache this match ...
+                // ... if cacheing is not turned off, cache this match.
                 if (!senderArguments.IgnoreCacheMatch)
                     CacheMatch(p.GuildId, away.GuildId);
             }
@@ -238,33 +239,33 @@ namespace PartnerBot.Core.Services
         private void CacheMatch(ulong homeId, ulong awayId)
         {
             // Cache holds data for a single day, so no cache set should be over 24 items (CACHE_MAX_SIZE).
-            if (!Cache.ContainsKey(homeId))
-                Cache[homeId] = new();
+            if (!this.Cache.ContainsKey(homeId))
+                this.Cache[homeId] = new();
 
-            Cache[homeId].Enqueue(awayId);
+            this.Cache[homeId].Enqueue(awayId);
 
-            while (Cache[homeId].Count > CAHCE_MAX_SIZE)
-                _ = Cache[homeId].TryDequeue(out _);
+            while (this.Cache[homeId].Count > CAHCE_MAX_SIZE)
+                _ = this.Cache[homeId].TryDequeue(out _);
 
-            // same thig, but for the away id
-            if (!Cache.ContainsKey(awayId))
-                Cache[awayId] = new();
+            // Same thing, but for the away id.
+            if (!this.Cache.ContainsKey(awayId))
+                this.Cache[awayId] = new();
 
-            Cache[awayId].Enqueue(homeId);
+            this.Cache[awayId].Enqueue(homeId);
 
-            while (Cache[awayId].Count > CAHCE_MAX_SIZE)
-                _ = Cache[awayId].TryDequeue(out _);
+            while (this.Cache[awayId].Count > CAHCE_MAX_SIZE)
+                _ = this.Cache[awayId].TryDequeue(out _);
         }
 
         private bool CheckCache(ulong homeId, ulong awayId)
         {
-            // ... make sure this guild hasnt been matched with recently ...
-            if (Cache.TryGetValue(homeId, out var homeCache))
+            // Make sure this guild hasnt been matched with recently.
+            if (this.Cache.TryGetValue(homeId, out ConcurrentQueue<ulong>? homeCache))
             {
                 if (homeCache.Contains(awayId)) return true;
             }
 
-            if(Cache.TryGetValue(awayId, out var awayCache))
+            if(this.Cache.TryGetValue(awayId, out ConcurrentQueue<ulong>? awayCache))
             {
                 if (awayCache.Contains(homeId)) return true;
             }
@@ -282,8 +283,8 @@ namespace PartnerBot.Core.Services
             // The match should compare tags, the server owner, the cahced servers, and server size.
 
             List<(float, Partner)> matches = new();
-            // ... for every partner in the full list ...
-            foreach(var item in fullList)
+            // For every partner in the full list ...
+            foreach(Partner? item in fullList)
             {
                 float match = 1.0f;
                 // ... ignore values that are by the same owner ...
@@ -295,9 +296,9 @@ namespace PartnerBot.Core.Services
 
                 float matchedTags = 0.0f;
                 // ... for every tag in the to match ...
-                var itemTags = item.Tags;
-                var matchTags = toMatch.Tags;
-                foreach(var t in matchTags)
+                HashSet<string>? itemTags = item.Tags;
+                HashSet<string>? matchTags = toMatch.Tags;
+                foreach(string? t in matchTags)
                 { // ... add one if there is a matching tag in the potential parter ...
                     if (itemTags.Contains(t))
                         matchedTags++;
@@ -329,7 +330,7 @@ namespace PartnerBot.Core.Services
         #region Development Dataset
         private async Task<(List<Partner>, List<Partner>, List<Partner>)> GetDevelopmentStressTestDataset(PartnerSenderArguments senderArguments)
         {
-            var data = await DevelopmentStressTestDataManager.GetDataAsync();
+            List<DevelopmentStressTestChannel>? data = await DevelopmentStressTestDataManager.GetDataAsync();
 
             if (data is null)
                 throw new Exception("No test set data was found.");
@@ -337,7 +338,7 @@ namespace PartnerBot.Core.Services
             List<Partner> fullSet = new();
 
             ulong lastOwner = 0;
-            foreach(var item in data)
+            foreach(DevelopmentStressTestChannel? item in data)
             {
                 Partner p = new()
                 {
@@ -355,7 +356,7 @@ namespace PartnerBot.Core.Services
 
                 if (lastOwner != 0)
                 {
-                    var num = ThreadSafeRandom.Next(0, 100);
+                    int num = ThreadSafeRandom.Next(0, 100);
                     if (num < 5)
                         p.OwnerId = lastOwner;
                 }

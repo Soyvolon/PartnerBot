@@ -10,7 +10,7 @@ using PartnerBot.Core.Entities.Configuration;
 namespace PartnerBot.Discord.Commands.Conditions
 {
     /// <summary>
-    /// Marks this a Cessum owner exclusive command
+    /// Marks this a Cessum owner exclusive command.
     /// </summary>
     [AttributeUsage(AttributeTargets.Method)]
     public class RequireCessumOwnerAttribute : CheckBaseAttribute
@@ -19,7 +19,7 @@ namespace PartnerBot.Discord.Commands.Conditions
 
         public RequireCessumOwnerAttribute()
         {
-            _pcfg = DiscordBot.PbCfg ?? new("", "pb!", new(), new(), 0, new(), Permissions.None, "");
+            this._pcfg = DiscordBot.PbCfg ?? new("", "pb!", new(), new(), 0, new(), Permissions.None, "");
         }
 
         public override Task<bool> ExecuteCheckAsync(CommandContext ctx, bool help)
@@ -29,9 +29,11 @@ namespace PartnerBot.Discord.Commands.Conditions
             return Task.FromResult(false);
         }
 
-        public bool isOwner(ulong id) //Determines if an ID is an owner.
+        // Determines if an ID is an owner.
+        public bool isOwner(ulong id) 
         {
-            foreach (ulong ID in _pcfg.Owners) //Loop through array
+            // Loop through the owner ID array.
+            foreach (ulong ID in this._pcfg.Owners)
             {
                 if (ID == id)
                     return true;

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 
 using DSharpPlus.CommandsNext;
@@ -30,7 +27,7 @@ namespace PartnerBot.Discord.Commands.Core
             string message)
         {
             GuildBan? ban;
-            if ((ban = await _ban.GetBanAsync(ctx.Guild.Id)) is not null)
+            if ((ban = await this._ban.GetBanAsync(ctx.Guild.Id)) is not null)
             {
                 await RespondError($"Your server is banned due to: {ban.Reason}\n\n" +
                     $"Contact a staff member on the [support server](https://discord.gg/3SCTnhCMam) to learn more.");
@@ -47,8 +44,8 @@ namespace PartnerBot.Discord.Commands.Core
 
             if(GuildVerificationService.VerifyChannel(channel))
             {
-                var drank = await _donor.GetDonorRankAsync(ctx.Guild.OwnerId);
-                var res = await _partners.UpdateOrAddPartnerAsync(ctx.Guild.Id, () => {
+                int drank = await this._donor.GetDonorRankAsync(ctx.Guild.OwnerId);
+                (Partner?, string) res = await this._partners.UpdateOrAddPartnerAsync(ctx.Guild.Id, () => {
                     PartnerUpdater dat = new()
                     {
                         Active = true,
@@ -68,9 +65,9 @@ namespace PartnerBot.Discord.Commands.Core
                 {
                     await RespondSuccess($"Partner Bot is now setup and toggled on! A test message has been sent to {channel.Mention}");
 
-                    var data = res.Item1.BuildData(res.Item1, null);
+                    PartnerData? data = res.Item1.BuildData(res.Item1, null);
 
-                    await data.ExecuteAsync(_rest, new());
+                    await data.ExecuteAsync(this._rest, new());
                 }
                 else
                 {
@@ -79,7 +76,7 @@ namespace PartnerBot.Discord.Commands.Core
             }
             else
             {
-                var invalidRes = await GetInvalidChannelSetupDataString(channel);
+                (List<string>, List<DiscordOverwrite>) invalidRes = await GetInvalidChannelSetupDataString(channel);
 
                 await RespondError($"**Invalid Channel Setup.**\n" +
                             $"Some overwrites are missing the `View Channel` or `Read Message History` for {channel.Mention}\n\n" +

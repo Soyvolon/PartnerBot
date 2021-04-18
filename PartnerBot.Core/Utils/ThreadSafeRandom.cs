@@ -4,7 +4,7 @@ namespace PartnerBot.Core.Utils
 {
     public class ThreadSafeRandom
     {
-        private static Random _global = new Random();
+        private static readonly Random _global = new Random();
         [ThreadStatic]
         private static Random _local;
 
