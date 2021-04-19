@@ -206,7 +206,7 @@ namespace PartnerBot.Core.Services
                         }
 
                         if (updateWebhook)
-                            await hook.ModifyAsync(channelId: data.ChannelId.Value, reason: "Partner Bot Sender Webhook Update");
+                            await hook.ModifyAsync("Partner Bot Message Sender", channelId: data.ChannelId.Value, reason: "Partner Bot Sender Webhook Update");
                     }
 
                     p.WebhookId = hook.Id;

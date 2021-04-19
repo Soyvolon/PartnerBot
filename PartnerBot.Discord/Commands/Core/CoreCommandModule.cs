@@ -177,7 +177,7 @@ namespace PartnerBot.Discord.Commands.Core
             DiscordWebhook hook;
             if(partner.WebhookId != 0)
             {
-                hook = await this.Context.Client.GetWebhookAsync(partner.WebhookId);
+                hook = await this.Context.Client.GetWebhookWithTokenAsync(partner.WebhookId, partner.WebhookToken);
             }
             else
             {
@@ -186,7 +186,7 @@ namespace PartnerBot.Discord.Commands.Core
 
             if(hook.ChannelId != c.Id)
             {
-                await hook.ModifyAsync(channelId: c.Id);
+                await hook.ModifyAsync("Partner Bot Message Sender", channelId: c.Id);
             }
 
             string invite;
