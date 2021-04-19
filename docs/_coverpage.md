@@ -6,7 +6,7 @@
 
 > Connecting Discord Communities Together
 
-[Invite Partner Bot](https://discord.com/api/oauth2/authorize?client_id=398601531525562369&permissions=536964113&scope=bot%20applications.commands)
+[Invite Partner Bot](https://discord.com/api/oauth2/authorize?client_id=398601531525562369&permissions=805399552&scope=bot%20applications.commands)
 [Get Started](#getting-started)
 [GitHub](https://github.com/Soyvolon/PartnerBot)
 

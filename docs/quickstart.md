@@ -2,7 +2,7 @@
 # Quickstart Guide
 ## Adding Partner Bot
 
-First things first: Getting Partner Bot into your server. Click [here](https://discord.com/api/oauth2/authorize?client_id=398601531525562369&permissions=536964113&scope=bot%20applications.commands) to invite Partner Bot! Pick your server from the dropdown list, select authorize (don't change any permissions, Partner Bot needs those to run), then complete a captcha if needed.
+First things first: Getting Partner Bot into your server. Click [here](https://discord.com/api/oauth2/authorize?client_id=398601531525562369&permissions=805399552&scope=bot%20applications.commands) to invite Partner Bot! Pick your server from the dropdown list, select authorize (don't change any permissions, Partner Bot needs those to run), then complete a captcha if needed.
 
 Head on over to your server and you should see a message like this:
 

@@ -4,7 +4,7 @@
 
 ## Getting Started
 
-So you are looking to use Partner Bot? Well, your first step is to [invite Partner Bot](https://discord.com/api/oauth2/authorize?client_id=398601531525562369&permissions=536964113&scope=bot%20applications.commands) to your server!
+So you are looking to use Partner Bot? Well, your first step is to [invite Partner Bot](https://discord.com/api/oauth2/authorize?client_id=398601531525562369&permissions=805399552&scope=bot%20applications.commands) to your server!
 
 Make sure to not change any of the allowed permissions if you would like Partner Bot to work out of the box!
 
