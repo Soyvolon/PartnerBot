@@ -99,8 +99,21 @@ namespace PartnerBot.Discord.Commands.Core
                     {
                         string desc = "**Invalid Channel Setup.**\n" +
                             $"Some overwrites are missing the `View Channel` or `Read Message History` for {mentioned.Mention}";
+                        (List<string>, List<DiscordOverwrite>) invalidRes;
+                        try
+                        {
+                            invalidRes = await GetInvalidChannelSetupDataString(mentioned);
+                        }
+                        catch (UnauthorizedException)
+                        {
+                            await statusMessage.ModifyAsync(statusEmbed
+                                .WithDescription("Partner Bot does not have access to the selected channel. Please select a channel" +
+                                " Partner Bot does have access to.")
+                                .WithColor(DiscordColor.DarkRed)
+                                .Build());
+                            continue;
+                        }
 
-                        (List<string>, List<DiscordOverwrite>) invalidRes = await GetInvalidChannelSetupDataString(mentioned);
                         List<string>? data = invalidRes.Item1;
                         List<DiscordOverwrite>? invalid = invalidRes.Item2;
 
