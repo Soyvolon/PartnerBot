@@ -145,6 +145,16 @@ namespace PartnerBot.Discord.Commands.Core
                                     .Build());
                             }
                         }
+                        else
+                        {
+                            await statusMessage.ModifyAsync(statusEmbed
+                                .WithDescription("Please select a channel that you would like to receive partner messages in. This channel will" +
+                                " receive any messages from other servers when your advertisement is sent out.\n\n" +
+                                "The channel requires all overwrites in that channel have the following two permissions:" +
+                                " `View Channel` and `Read Message History`")
+                                .WithColor(color)
+                                .Build());
+                        }
                     }
                 }
             } while (!valid);
