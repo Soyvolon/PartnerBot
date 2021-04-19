@@ -119,12 +119,14 @@ namespace PartnerBot.Discord.Commands.Core
 
                         res = folloup.Item1;
 
-                        if (res.Result.Content.Trim().ToLower().Equals("exit"))
+                        string resVal = res.Result.Content.Trim().ToLower();
+
+                        if (resVal.Equals("exit"))
                         {
                             await RespondError("Setup cancled");
                             return (null, null, true);
                         }
-                        else if (res.Result.Content.Trim().ToLower().Equals("yes"))
+                        else if (resVal.Equals("yes"))
                         {
                             (bool, string?) fix = await ConfigurePartnerChannelPermissions(invalid);
 
