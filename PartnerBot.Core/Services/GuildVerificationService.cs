@@ -162,7 +162,16 @@ namespace PartnerBot.Core.Services
                         continue;
                     }
 
-                    await UpdateDonorRanking(hook.GuildId);
+                    DiscordGuild? guild = await this._rest.GetGuildAsync(id.Value);
+
+                    PartnerDatabaseContext? _database = this._services.GetRequiredService<PartnerDatabaseContext>();
+                    Partner? p = await _database.FindAsync<Partner>(id.Value);
+                    int rank = await this._donor.GetDonorRankAsync(p.OwnerId);
+
+                    p.DonorRank = rank;
+                    p.UserCount = guild.MemberCount;
+
+                    await _database.SaveChangesAsync();
                 }
                 catch
                 {
@@ -170,13 +179,6 @@ namespace PartnerBot.Core.Services
                     await DisablePartner(id.Value);
                     continue;
                 }
-
-                DiscordGuild? guild = await this._rest.GetGuildAsync(id.Value);
-
-                PartnerDatabaseContext? _database = this._services.GetRequiredService<PartnerDatabaseContext>();
-                Partner? p = await _database.FindAsync<Partner>(id.Value);
-                p.UserCount = guild.MemberCount;
-                await _database.SaveChangesAsync();
             }
         }
 
@@ -201,17 +203,6 @@ namespace PartnerBot.Core.Services
             }
 
             return true;
-        }
-
-        public async Task UpdateDonorRanking(ulong guildId)
-        {
-            PartnerDatabaseContext? _database = this._services.GetRequiredService<PartnerDatabaseContext>();
-            Partner? p = await _database.FindAsync<Partner>(guildId);
-
-            int rank = await this._donor.GetDonorRankAsync(p.OwnerId);
-
-            p.DonorRank = rank;
-            await _database.SaveChangesAsync();
         }
     }
 }
