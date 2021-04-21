@@ -8,6 +8,7 @@ using DSharpPlus.Entities;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 using PartnerBot.Core.Database;
 using PartnerBot.Core.Entities;
@@ -23,6 +24,7 @@ namespace PartnerBot.Core.Services
 
         // Read and see the channels.
         public static readonly Permissions RequiredPermissions = Permissions.AccessChannels | Permissions.ReadMessageHistory;
+        private static readonly EventId _event = new EventId(12701, "GuildVerify");
 
         public ConcurrentBag<int> SlotsBag { get; private set; }
         public ConcurrentDictionary<ulong, ulong>[] ChannelTree { get; init; }
@@ -32,6 +34,7 @@ namespace PartnerBot.Core.Services
         private readonly IServiceProvider _services;
         private readonly DiscordRestClient _rest;
         private readonly DonorService _donor;
+        private readonly ILogger _logger;
 
         private int CurrentSlot { get; set; }
 
@@ -41,6 +44,7 @@ namespace PartnerBot.Core.Services
             this._services = services;
             this._rest = rest;
             this._donor = donor;
+            this._logger = rest.Logger;
 
             this.ChannelTree = new ConcurrentDictionary<ulong, ulong>[DOUBLE_SECONDS_PER_DAY];
             this.SlotsBag = new();
@@ -53,7 +57,7 @@ namespace PartnerBot.Core.Services
             this.SlotTree = new();
             this.VerificationTimer = null;
 
-            for (int i = 0; i < DOUBLE_SECONDS_PER_DAY; i++)
+            for (int i = DOUBLE_SECONDS_PER_DAY - 1; i >= 0; i--)
             {
                 this.SlotsBag.Add(i);
                 this.ChannelTree[i] = new();
@@ -76,6 +80,7 @@ namespace PartnerBot.Core.Services
 
                 if (this.SlotsBag.TryTake(out int slot))
                 {
+                    _logger.LogDebug(_event, $"Added guild {res.GuildId} to slot {slot}");
                     this.ChannelTree[slot][res.WebhookId] = res.GuildId;
                     this.SlotTree[res.GuildId] = slot;
                 }
@@ -104,6 +109,8 @@ namespace PartnerBot.Core.Services
                     throw new Exception("Failed to regerneate slot bag.");
             }
 
+            _logger.LogDebug(_event, $"Added guild {p.GuildId} to slot {slot}");
+
             this.SlotTree[p.GuildId] = slot;
             this.ChannelTree[slot][p.WebhookId] = p.GuildId;
         }
@@ -121,7 +128,8 @@ namespace PartnerBot.Core.Services
 
         private void RegenerateSlotBag()
         {
-            for (int i = 0; i < DOUBLE_SECONDS_PER_DAY; i++)
+            //for (int i = 0; i < DOUBLE_SECONDS_PER_DAY; i++)
+            for (int i = DOUBLE_SECONDS_PER_DAY - 1; i >= 0; i--)
                 this.SlotsBag.Add(i);
         }
 
@@ -130,10 +138,15 @@ namespace PartnerBot.Core.Services
             if (++this.CurrentSlot >= DOUBLE_SECONDS_PER_DAY)
                 this.CurrentSlot = 0;
 
+            _logger.LogTrace(_event, $"Starting verifcation for slot {this.CurrentSlot}");
+
             ConcurrentDictionary<ulong, ulong>? ids = this.ChannelTree[this.CurrentSlot];
 
-            foreach(System.Collections.Generic.KeyValuePair<ulong, ulong> id in ids)
+            _logger.LogTrace(_event, $"Found {ids.Count} IDs to verify.");
+
+            foreach (System.Collections.Generic.KeyValuePair<ulong, ulong> id in ids)
             {
+                _logger.LogInformation(_event, $"Starting verification for guild {id.Value}");
                 try
                 {
                     DiscordWebhook? hook = await this._rest.GetWebhookAsync(id.Key);
@@ -141,7 +154,11 @@ namespace PartnerBot.Core.Services
 
                     if(!VerifyChannel(channel))
                     {
+                        _logger.LogWarning(_event, $"Invalid setup detected for guild {id.Value}");
                         await DisablePartner(id.Value);
+                        _ = Task.Run(async () => await hook.ExecuteAsync(new DiscordWebhookBuilder()
+                            .WithContent("Your server has been disabled due to an invalid setup. Please re-do your" +
+                            " Partern Setup.")));
                         continue;
                     }
 
@@ -149,6 +166,7 @@ namespace PartnerBot.Core.Services
                 }
                 catch
                 {
+                    _logger.LogWarning(_event, $"Invalid setup detected for guild {id.Value}");
                     await DisablePartner(id.Value);
                     continue;
                 }

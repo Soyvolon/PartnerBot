@@ -117,7 +117,7 @@ namespace PartnerBot.Discord
         private void OnPartnerRunTimer(object? data)
         {
             int chour = DateTime.UtcNow.Hour;
-            if (chour > this.lastHour)
+            if (chour != this.lastHour)
             {
                 int min = DateTime.UtcNow.Minute;
 
@@ -148,7 +148,7 @@ namespace PartnerBot.Discord
 
                     this.thirdRun = true;
                 }
-                else
+                else if (min >= 45)
                 {
                     _ = Task.Run(async () => await this._partnerSender.ExecuteAsync(new()
                     {
