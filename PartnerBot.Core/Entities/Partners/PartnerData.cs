@@ -55,6 +55,8 @@ namespace PartnerBot.Core.Entities
                     .WithColor(DiscordColor.Gray)
                     .WithTitle("Partner Bot Advertisment")
                     .WithDescription($"**ID:** {this.Match.GuildId}")
+                    .WithFooter($"pb-advert{(this.Match.NSFW ? " | NSFW" : "")}", 
+                        rest.CurrentApplication.GetAvatarUrl(ImageFormat.Png))
                     .WithImageUrl(this.Match.Banner));
 
             if (!string.IsNullOrWhiteSpace(this.Match.GuildIcon))
