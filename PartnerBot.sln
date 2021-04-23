@@ -11,12 +11,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "git", "git", "{8DB02ED4-244
 	ProjectSection(SolutionItems) = preProject
 		.gitattributes = .gitattributes
 		.gitignore = .gitignore
+		CONTRIBUTING.md = CONTRIBUTING.md
+		LICENSE = LICENSE
 		README.md = README.md
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "PartnerBot.Discord", "PartnerBot.Discord\PartnerBot.Discord.csproj", "{95387A37-37E7-4721-A753-6B11B3F0E2F3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DBConverter", "DBConverter\DBConverter.csproj", "{9C626D2A-AE2E-47D1-9206-2BDD9A450627}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DBConverter", "DBConverter\DBConverter.csproj", "{9C626D2A-AE2E-47D1-9206-2BDD9A450627}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
