@@ -284,7 +284,7 @@ namespace PartnerBot.Core.Services
 
             List<(float, Partner)> matches = new();
             // For every partner in the full list ...
-            foreach(Partner? item in fullList)
+            foreach (Partner? item in fullList)
             {
                 float match = 1.0f;
                 // ... ignore values that are by the same owner ...
@@ -293,6 +293,19 @@ namespace PartnerBot.Core.Services
                 // ... and those saved in the cache ...
                 if (!senderArguments.IgnoreCacheMatch)
                     if (CheckCache(toMatch.GuildId, item.GuildId)) continue;
+
+                // ... and check the compatability of their NSFW states ...
+                if (!senderArguments.IgnoreNSFWMatch)
+                {
+                    if (toMatch.NSFW)
+                    {
+                        if (!(item.ReceiveNSFW || item.NSFW)) continue;
+                    }
+                    else
+                    {
+                        if (item.NSFW && !toMatch.ReceiveNSFW) continue;
+                    }
+                }
 
                 float matchedTags = 0.0f;
                 // ... for every tag in the to match ...

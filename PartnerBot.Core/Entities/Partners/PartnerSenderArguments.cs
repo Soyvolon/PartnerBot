@@ -9,13 +9,15 @@
         public bool IgnoreOwnerMatch { get; set; } = false;
         public bool IgnoreCacheMatch { get; set; } = false;
         public bool DevelopmentStressTest { get; set; } = false;
+        public bool IgnoreNSFWMatch { get; set; } = false;
 
         public override string ToString()
         {
             return $"SenderArgs:[DonorRun: {this.DonorRun}," +
                 $" IgnoreOwnerMatch: {this.IgnoreOwnerMatch}," +
                 $" IgnoreCacheMatch: {this.IgnoreCacheMatch}," +
-                $" DevelopmentStressTest: {this.DevelopmentStressTest}]";
+                $" DevelopmentStressTest: {this.DevelopmentStressTest}," +
+                $" IgnoreNSFWMatch: {this.IgnoreNSFWMatch}]";
         }
     }
 }
