@@ -13,6 +13,8 @@ namespace PartnerBot.Discord.Commands
         protected DiscordEmoji Lock { get; private set; }
         protected DiscordEmoji Check { get; private set; }
         protected DiscordEmoji Cross { get; private set; }
+        protected DiscordEmoji Yes { get; private set; }
+        protected DiscordEmoji No { get; private set; }
 
         public override Task BeforeExecutionAsync(CommandContext ctx)
         {
@@ -22,6 +24,8 @@ namespace PartnerBot.Discord.Commands
             this.Lock = DiscordEmoji.FromName(ctx.Client, ":lock:");
             this.Check = DiscordEmoji.FromName(ctx.Client, ":white_check_mark:");
             this.Cross = DiscordEmoji.FromName(ctx.Client, ":x:");
+            this.Yes = DiscordEmoji.FromName(ctx.Client, ":regional_indicator_y:");
+            this.No = DiscordEmoji.FromName(ctx.Client, ":regional_indicator_n:");
 
             return Task.CompletedTask;
         }

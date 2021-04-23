@@ -31,7 +31,9 @@ namespace PartnerBot.Discord.Commands.Core
                         $"*Main Options:*\n" +
                         $"`channel`, `message`, `toggle`, `save`\n\n" +
                         $"*Optional Options:*\n" +
-                        $"`add-embed`, `edit-embed`, `remove-embed`, `banner`, `color`, `tags`, `vanity`";
+                        $"`add-embed`, `edit-embed`, `remove-embed`, `banner`, `color`, `tags`, `vanity`\n\n" +
+                        $"*Server Settings:*\n" +
+                        $"`get-nsfw`, `set-nsfw`";
 
         public SetupCommand(IServiceProvider services, DonorService donor,
             PartnerManagerService partners, GuildBanService ban,
@@ -512,7 +514,26 @@ namespace PartnerBot.Discord.Commands.Core
                             errored = true;
                         }
                         break;
+                    case "get-nsfw":
+                        if(!partner.NSFW)
+                            partner.ReceiveNSFW = !partner.ReceiveNSFW;
+                        else
+                        {
+                            statusEmbed.WithTitle("Partner Bot Setup - Main")
+                                        .WithDescription($"{BASE_MESSAGE}\n\n" +
+                                        $"**If your server is marked NSFW you must be allwoed to receive other NSFW server advertisments." +
+                                        $" Make your advertisment *not* NSFW, then use `set-nsfw` again before turning this option off with" +
+                                        $" `get-nsfw`.**")
+                                        .WithColor(DiscordColor.DarkRed);
 
+                            errored = true;
+                        }
+                        break;
+                    case "set-nsfw":
+                        partner.NSFW = !partner.NSFW;
+                        if (partner.NSFW)
+                            partner.ReceiveNSFW = true;
+                        break;
                     default:
                         break;
                 }
@@ -618,7 +639,18 @@ namespace PartnerBot.Discord.Commands.Core
                         (usedVanity ? "You have enabled your vanity URL! Want to disable it? Use `vanity`!" : "Want to use your vanity URL? Use `vanity`!")
                     : "You don't have a vanity URL for your server!")
                 : $"You can't use a vanity URL! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to use your servers vanity URL with Partner Bot" +
-                $" (You must have a vanity URL from Discord to use this option).", true);
+                $" (You must have a vanity URL from Discord to use this option).", true)
+                .AddField("_ _", "``` ```", false)
+                .AddField("**Server Settings**", "_ _", false)
+                .AddField($"{(partner.NSFW ? this.Yes.GetDiscordName() : this.No.GetDiscordName())} NSFW Server", 
+                    partner.NSFW ? "Your server is marked as NSFW. **This does not allow NSFW content in your banner or advertisment!**. This means your" +
+                    " server advertisment is mentioning NSFW content, but does not include it. Use `set-nsfw` to toggle this option."
+                        : "Your server is **not** marked as NSFW. No mention of NSFW content can be in your advertisment. Use `set-nsfw` to toggle this option.", true)
+                .AddField($"{(partner.ReceiveNSFW ? this.Yes.GetDiscordName() : this.No.GetDiscordName())} Get NSFW Server Adverts", 
+                    partner.ReceiveNSFW ? "Your server is allowed to receive advertisments from NSFW servers. This means advertisments mentioning NSFW" +
+                    " content are allowed. **Please report any advertisments with NSFW images.** Use `get-nsfw` to toggle this option."
+                        : "Your server is **not** allowed to receive advertisments from NSFW servers. **Please report any advertisments that are or mention" +
+                        " NSFW content that you receive.** Use `get-nsfw` to toggle this option.", true);
 
 
             return requirementsEmbed;
