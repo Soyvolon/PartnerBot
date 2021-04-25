@@ -9,7 +9,7 @@ WORKDIR /app
 FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
 WORKDIR /src
 COPY ["PartnerBot/PartnerBot.csproj", "PartnerBot/"]
-RUN dotnet restore "PartnerBot/PartnerBot.csproj"
+RUN dotnet restore "PartnerBot/PartnerBot.csproj" --configfile "NuGet.config"
 COPY . .
 WORKDIR "/src/PartnerBot"
 RUN dotnet build "PartnerBot.csproj" -c Release -o /app/build
