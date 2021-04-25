@@ -69,14 +69,6 @@ namespace PartnerBot.Discord
 
             System.Collections.Generic.IReadOnlyDictionary<int, CommandsNextExtension>? cnext = await this._client.UseCommandsNextAsync(GetCNextConfig());
 
-            foreach(CommandsNextExtension? c in cnext.Values)
-            {
-                c.RegisterCommands(Assembly.GetAssembly(typeof(CommandHandlingService)));
-
-                c.CommandErrored += this._error.Client_CommandErrored;
-                c.CommandExecuted += this._error.Client_CommandExecuted;
-            }
-
             System.Collections.Generic.IReadOnlyDictionary<int, DSharpPlus.Interactivity.InteractivityExtension>? interact = await this._client.UseInteractivityAsync(new());
 
             await this._rest.InitializeAsync();
@@ -183,12 +175,8 @@ namespace PartnerBot.Discord
 
                     return Task.CompletedTask;
                 };
-                c.ClientErrored += (x, y) =>
-                 {
-                     x.Logger.LogError(y.Exception, $"Client Errored in {y.EventName}");
-                     return Task.CompletedTask;
-                 };
-                c.Ready += Client_Ready;
+
+                InitalizeSingleClient(c);
 
                 await c.ConnectAsync();
             }
@@ -197,6 +185,36 @@ namespace PartnerBot.Discord
             {
                 await Task.Delay(1000);
             };
+        }
+
+        private void InitalizeSingleClient(DiscordClient c)
+        {
+            c.MessageCreated += this._command.Client_MessageCreated;
+            c.Ready += (c, e) =>
+            {
+                _ = Task.Run(() =>
+                {
+                    this._verify.Start();
+                    this.PartnerTimer = new(OnPartnerRunTimer, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+                });
+
+                c.Logger.LogInformation("Client Ready");
+
+                return Task.CompletedTask;
+            };
+            c.ClientErrored += (x, y) =>
+            {
+                x.Logger.LogError(y.Exception, $"Client Errored in {y.EventName}");
+                return Task.CompletedTask;
+            };
+
+
+            CommandsNextExtension cnext = c.GetCommandsNext();
+
+            cnext.RegisterCommands(Assembly.GetAssembly(typeof(CommandHandlingService)));
+
+            cnext.CommandErrored += this._error.Client_CommandErrored;
+            cnext.CommandExecuted += this._error.Client_CommandExecuted;
         }
         #endregion
 
