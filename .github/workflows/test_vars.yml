@@ -10,4 +10,4 @@ jobs:
     
     steps:
     - name: Variables
-      run: echo "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git#$GITHUB_REF"
+      run: echo ${{ github.server_url }}/${{ github.repository }}.git#${{ github.ref }}
