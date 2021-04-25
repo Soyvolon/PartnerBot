@@ -1,0 +1,49 @@
+name: Discord Release
+
+on:
+  workflow_dispatch:
+  release:
+    types: [released]
+  
+jobs:
+  build:
+
+    runs-on: windows-latest
+
+    steps:
+    # extract branch name
+    - name: Extract branch name
+      shell: bash
+      run: echo "branch_name=$(echo ${GITHUB_REF#refs/heads/} | tr / -)" >> $GITHUB_ENV
+      id: extract_branch
+    - name: Save Docker URL
+      shell: bash
+      run: echo "docker_url=$(echo ${{ github.server_url }}/${{ github.repository }}.git#${{ env.branch_name }})" >> $GITHUB_ENV
+      id: save_docker_url
+    - name: Stop Current Release
+      uses: garygrossgarten/github-action-ssh@release
+      continue-on-error: true
+      with:
+        command: docker contianer stop pb-bot && docker container prune -f
+        host: ${{ secrets.RELEASE_HOST }}
+        username: ${{ secrets.RELEASE_USER }}
+        passphrase: ${{ secrets.RELEASE_PASSPHRASE }}
+        privateKey: ${{ secrets.RELEASE_PRIVATE_KEY }}
+    - name: Start New Release
+      uses: garygrossgarten/github-action-ssh@release
+      continue-on-error: true
+      with:
+        command: docker build -t partner-bot ${{ env.docker_url }}
+        host: ${{ secrets.RELEASE_HOST }}
+        username: ${{ secrets.RELEASE_USER }}
+        passphrase: ${{ secrets.RELEASE_PASSPHRASE }}
+        privateKey: ${{ secrets.RELEASE_PRIVATE_KEY }}
+    - name: Start New Release
+      uses: garygrossgarten/github-action-ssh@release
+      continue-on-error: true
+      with:
+        command: docker run -d --name pb-bot --restart always -v /root/PartnerBot/Config:/app/Config -v /root/PartnerBot/Database:/app/Database partner-bot
+        host: ${{ secrets.RELEASE_HOST }}
+        username: ${{ secrets.RELEASE_USER }}
+        passphrase: ${{ secrets.RELEASE_PASSPHRASE }}
+        privateKey: ${{ secrets.RELEASE_PRIVATE_KEY }}
