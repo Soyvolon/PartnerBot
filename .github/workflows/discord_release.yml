@@ -14,7 +14,7 @@ jobs:
     # extract branch name
     - name: Extract branch name
       shell: bash
-      run: echo "branch_name=$(echo ${GITHUB_REF#refs/heads/} | tr / -)" >> $GITHUB_ENV
+      run: echo "branch_name=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_ENV
       id: extract_branch
     - name: Save Docker URL
       shell: bash
