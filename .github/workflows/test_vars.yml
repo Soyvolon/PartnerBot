@@ -12,7 +12,7 @@ jobs:
     # extract branch name
     - name: Extract branch name
       shell: bash
-      run: echo "::set-env name=BRANCH_NAME::$(echo ${GITHUB_REF#refs/heads/})"
+      run: echo "branch_name=$(echo ${GITHUB_REF#refs/heads/} | tr / -)" >> $GITHUB_ENV
       id: extract_branch
     - name: Variables
-      run: echo ${{ github.server_url }}/${{ github.repository }}.git#$env:BRANCH_NAME
+      run: echo ${{ github.server_url }}/${{ github.repository }}.git#${{ env.branch_name }}
