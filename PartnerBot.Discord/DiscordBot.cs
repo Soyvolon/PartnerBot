@@ -112,6 +112,12 @@ namespace PartnerBot.Discord
 
         public async Task StartAsync()
         {
+            _client.ClientErrored += (x, y) =>
+            {
+                x.Logger.LogError(y.Exception, $"Client Errored in {y.EventName}");
+                return Task.CompletedTask;
+            };
+
             int shardCount = PbCfg!.ShardCount == 1 ? _client.GatewayInfo.ShardCount : PbCfg.ShardCount;
             int concurrency = _client.GatewayInfo.SessionBucket.MaxConcurrency;
 
@@ -177,6 +183,11 @@ namespace PartnerBot.Discord
 
                     return Task.CompletedTask;
                 };
+                c.ClientErrored += (x, y) =>
+                 {
+                     x.Logger.LogError(y.Exception, $"Client Errored in {y.EventName}");
+                     return Task.CompletedTask;
+                 };
                 c.Ready += Client_Ready;
 
                 await c.ConnectAsync();
