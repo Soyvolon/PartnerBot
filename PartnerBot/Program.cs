@@ -54,7 +54,7 @@ namespace PartnerBot
 #if DEBUG
                 MinimumLogLevel = LogLevel.Debug,
 #else
-                MinimumLogLevel = LogLevel.Trace,
+                MinimumLogLevel = LogLevel.Information,
 #endif
                 Token = pcfg.Token,
                 ShardCount = pcfg.ShardCount
