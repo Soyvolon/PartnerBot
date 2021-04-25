@@ -26,10 +26,12 @@ namespace PartnerBot.Core.Entities.Configuration
         public Permissions BotPermissions { get; internal set; }
         [JsonPropertyName("home_guild_invite")]
         public string InviteCode { get; internal set; }
+        [JsonPropertyName("shard_count")]
+        public int ShardCount { get; internal set; }
 
         [JsonConstructor]
         public PartnerBotConfiguration(string token, string prefix, List<ulong> owners, List<ulong> staffRoles, ulong homeGuild, List<PartnerBotDonorRoleConfiguration> donorRoles,
-            Permissions botPermissions, string inviteCode)
+            Permissions botPermissions, string inviteCode, int shardCount)
         {
             this.Token = token;
             this.Prefix = prefix;
@@ -39,6 +41,7 @@ namespace PartnerBot.Core.Entities.Configuration
             this.DonorRoles = donorRoles;
             this.BotPermissions = botPermissions;
             this.InviteCode = inviteCode;
+            this.ShardCount = shardCount;
         }
     }
 

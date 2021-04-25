@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,9 +21,10 @@ namespace PartnerBot.Discord
     {
         #region Event Ids
         // 127### - designates a Discord Bot event.
-        public static EventId Event_CommandErrorHandler { get; } = new EventId(127001, "Command Error Handler");
-        public static EventId Event_CommandHandler { get; } = new EventId(127002, "Command Handler");
-        public static EventId Event_ClientLogger { get; } = new EventId(127003, "Client Logger");
+        public static EventId Event_CommandErrorHandler { get; } = new EventId(701, "CmdErrHandler");
+        public static EventId Event_CommandHandler { get; } = new EventId(702, "CmdHandler");
+        public static EventId Event_ClientLogger { get; } = new EventId(703, "ClientLogger");
+        public static EventId Event_ShardBooter { get; } = new EventId(704, "ShardBooter");
         #endregion
 
         #region Attribute Only Values
@@ -94,11 +97,6 @@ namespace PartnerBot.Discord
             return Task.CompletedTask;
         }
 
-        public async Task StartAsync()
-        {
-            await this._client.StartAsync();
-        }
-
         private CommandsNextConfiguration GetCNextConfig()
         {
             return new()
@@ -107,6 +105,83 @@ namespace PartnerBot.Discord
                 Services = _serviceProvider,
             };
         }
+
+        #region Shard Loading
+        private List<List<DiscordClient>> Buckets { get; set; }
+        private const int DOWNLOAD_CONCURRENCY = 4;
+
+        public async Task StartAsync()
+        {
+            int shardCount = PbCfg!.ShardCount == 1 ? _client.GatewayInfo.ShardCount : PbCfg.ShardCount;
+            int concurrency = _client.GatewayInfo.SessionBucket.MaxConcurrency;
+
+            Buckets = new();
+
+            int b = -1;
+            for(int i = 0; i < shardCount; i++)
+            {
+                if (i % concurrency == 0)
+                {
+                    Buckets.Add(new());
+                    b++;
+                }
+
+                Buckets[b].Add(_client.ShardClients[i]);
+            }
+
+            await BootBuckets();
+        }
+
+        private async Task BootBuckets()
+        {
+            foreach(var bucket in Buckets)
+            {
+                int con = 0;
+                List<DiscordClient> nextRun = new();
+                for(int i = 0; i < bucket.Count; i++)
+                {
+                    nextRun.Add(bucket[i]);
+
+                    if(con++ >= DOWNLOAD_CONCURRENCY)
+                    {
+                        con = 0;
+                        await BootBatch(nextRun);
+                        nextRun.Clear();
+                    }
+                }
+
+                if(nextRun.Count > 0)
+                    await BootBatch(nextRun);
+            }
+        }
+
+        private async Task BootBatch(List<DiscordClient> clients)
+        {
+            int completed = 0;
+            int running = clients.Count;
+
+            foreach(var c in clients)
+            {
+                c.GuildDownloadCompleted += (c, e) =>
+                {
+                    if(clients.Contains(c))
+                    {
+                        c.Logger.LogInformation(Event_ShardBooter, $"Guild Download for shard {c.ShardId} completed.");
+                        completed++;
+                    }
+
+                    return Task.CompletedTask;
+                };
+
+                await c.ConnectAsync();
+            }
+
+            while(completed < running)
+            {
+                await Task.Delay(1000);
+            };
+        }
+        #endregion
 
         #region Partner Running
         private int lastHour = -1;

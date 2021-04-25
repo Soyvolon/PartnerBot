@@ -56,7 +56,8 @@ namespace PartnerBot
 #else
                 MinimumLogLevel = LogLevel.Trace,
 #endif
-                Token = pcfg.Token
+                Token = pcfg.Token,
+                ShardCount = pcfg.ShardCount
             };
 
             services.AddDbContext<PartnerDatabaseContext>(options =>
