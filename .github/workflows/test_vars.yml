@@ -1,0 +1,21 @@
+name: Variable Testing
+
+on:
+  workflow_dispatch:
+  
+jobs:
+  build:
+
+    runs-on: windows-latest
+    
+    steps:
+    # extract branch name
+    - name: Extract branch name
+      shell: bash
+      run: echo "branch_name=$(echo ${GITHUB_REF#refs/heads/} | tr / -)" >> $GITHUB_ENV
+      id: extract_branch
+    - name: Save Docker URL
+      shell: bash
+      run: echo "docker_url=$(echo ${{ github.server_url }}/${{ github.repository }}.git#${{ env.branch_name }})" >> $GITHUB_ENV
+      id: save_docker_url
+    - run: echo ${{ env.docker_url }}
