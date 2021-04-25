@@ -185,8 +185,8 @@ namespace PartnerBot.Discord
                 await c.ConnectAsync();
             }
 
-            int c = 0;
-            while(completed < running && c++ < 100)
+            int i = 0;
+            while(completed < running && i++ < 100)
             {
                 await Task.Delay(1000);
             };
