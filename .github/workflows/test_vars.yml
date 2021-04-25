@@ -10,4 +10,4 @@ jobs:
     
     steps:
     - name: Variables
-      run: echo ${{ env.GITHUB_SERVER_URL }}${{ env.GITHUB_REPOSITORY }}.git#${{ env.GITHUB_REF }}
+      run: echo $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git#$GITHUB_REF
