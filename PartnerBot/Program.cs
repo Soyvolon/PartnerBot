@@ -54,7 +54,7 @@ namespace PartnerBot
 #if DEBUG
                 MinimumLogLevel = LogLevel.Debug,
 #else
-                MinimumLogLevel = LogLevel.Information,
+                MinimumLogLevel = LogLevel.Trace,
 #endif
                 Token = pcfg.Token
             };
