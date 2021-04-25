@@ -9,7 +9,6 @@ WORKDIR /app
 FROM mcr.microsoft.com/dotnet/sdk:5.0 AS build
 WORKDIR /src
 COPY ["PartnerBot/PartnerBot.csproj", "PartnerBot/"]
-RUN dotnet nuget add source "https://api.nuget.org/v3/index.json" -n "DSPNightly"
 RUN dotnet restore "PartnerBot/PartnerBot.csproj"
 COPY . .
 WORKDIR "/src/PartnerBot"
