@@ -172,6 +172,7 @@ namespace PartnerBot.Discord
 
                     return Task.CompletedTask;
                 };
+                c.Ready += Client_Ready;
 
                 await c.ConnectAsync();
             }
