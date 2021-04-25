@@ -80,7 +80,15 @@ namespace PartnerBot
                 .AddSingleton<DiscordBot>()
                 .AddSingleton<DonorService>()
                 .AddSingleton<GuildBanService>()
-                .AddLogging(o => o.SetMinimumLevel(LogLevel.Debug).AddConsole())
+                .AddLogging(o => o.SetMinimumLevel(
+#if DEBUG
+                    LogLevel.Debug
+#else
+                    LogLevel.Warning
+#endif
+                    ).AddConsole())
+
+
                 .AddSingleton(pcfg);
 
             IServiceProvider provider = services.BuildServiceProvider();
