@@ -30,7 +30,7 @@ jobs:
       uses: garygrossgarten/github-action-ssh@release
       continue-on-error: true
       with:
-        command: docker contianer stop pb-bot && docker container prune -f
+        command: docker container stop pb-bot && docker container prune -f
         host: ${{ secrets.RELEASE_HOST }}
         username: ${{ secrets.RELEASE_USER }}
         passphrase: ${{ secrets.RELEASE_PASSPHRASE }}
