@@ -9,5 +9,10 @@ jobs:
     runs-on: windows-latest
     
     steps:
+    # extract branch name
+    - name: Extract branch name
+      shell: bash
+      run: echo "::set-env name=BRANCH_NAME::$(echo ${GITHUB_REF#refs/heads/})"
+      id: extract_branch
     - name: Variables
-      run: echo ${{ github.server_url }}/${{ github.repository }}.git#${{ github.ref#refs/heads/ }}
+      run: echo ${{ github.server_url }}/${{ github.repository }}.git#$env:BRANCH_NAME
