@@ -34,7 +34,7 @@ namespace DBConverter
         {
             modelBuilder.Entity<Ad>(entity =>
             {
-                entity.ToTable("ads");
+                entity.ToTable("Ads");
 
                 entity.Property(e => e.Message).HasColumnType("longtext");
             });
@@ -43,7 +43,7 @@ namespace DBConverter
             {
                 entity.HasNoKey();
 
-                entity.ToTable("guildbans");
+                entity.ToTable("GuildBans");
 
                 entity.Property(e => e.Date)
                     .IsRequired()
@@ -67,7 +67,7 @@ namespace DBConverter
                 entity.HasKey(e => e.GuildId)
                     .HasName("PRIMARY");
 
-                entity.ToTable("guildconfig");
+                entity.ToTable("GuildConfig");
 
                 entity.Property(e => e.GuildId).HasColumnName("guildID");
 
@@ -93,7 +93,7 @@ namespace DBConverter
                 entity.HasKey(e => e.GuildId)
                     .HasName("PRIMARY");
 
-                entity.ToTable("partnerlist");
+                entity.ToTable("PartnerList");
 
                 entity.Property(e => e.Data).HasColumnType("mediumtext");
 
@@ -117,7 +117,7 @@ namespace DBConverter
                 entity.HasKey(e => e.GuildId)
                     .HasName("PRIMARY");
 
-                entity.ToTable("testpartnerlist");
+                entity.ToTable("TestPartnerList");
 
                 entity.Property(e => e.Banner).HasColumnType("longtext");
 
