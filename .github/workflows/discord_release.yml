@@ -15,7 +15,7 @@ jobs:
     - name: Extract branch name
       if: github.event_name == 'workflow_dispatch'
       shell: bash
-      run: echo "branch_name=$(echo ${GITHUB_REF#refs/heads/} | tr / -)" >> $GITHUB_ENV
+      run: echo "branch_name=$(echo ${GITHUB_REF#refs/heads/})" >> $GITHUB_ENV
       id: extract_branch
     - name: Extract Tag Name
       if: github.event_name == 'release'
