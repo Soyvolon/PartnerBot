@@ -78,13 +78,7 @@ namespace PartnerBot.Discord
 
         private Task Client_Ready(DiscordClient sender, DSharpPlus.EventArgs.ReadyEventArgs e)
         {
-            _ = Task.Run(() =>
-            {
-                this._verify.Start();
-                this.PartnerTimer = new(OnPartnerRunTimer, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
-            });
-
-            sender.Logger.LogInformation("Client Ready");
+            sender.Logger.LogInformation($"Shard {sender.ShardId} Ready");
 
             return Task.CompletedTask;
         }
@@ -130,6 +124,18 @@ namespace PartnerBot.Discord
             this._client.Logger.LogInformation(Event_ShardBooter, $"Built {Buckets.Count} buckets for {shardCount} shards.");
 
             await BootBuckets();
+
+            this._client.Logger.LogInformation(Event_ShardBooter, $"Shard booting complete, attaching events.");
+
+            foreach(var bucket in Buckets)
+                foreach(var c in bucket)
+                    InitalizeSingleClient(c);
+
+            _ = Task.Run(() =>
+            {
+                this._verify.Start();
+                this.PartnerTimer = new(OnPartnerRunTimer, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+            });
         }
 
         private async Task BootBuckets()
@@ -176,8 +182,6 @@ namespace PartnerBot.Discord
                     return Task.CompletedTask;
                 };
 
-                InitalizeSingleClient(c);
-
                 await c.ConnectAsync();
             }
 
@@ -207,7 +211,6 @@ namespace PartnerBot.Discord
                 x.Logger.LogError(y.Exception, $"Client Errored in {y.EventName}");
                 return Task.CompletedTask;
             };
-
 
             CommandsNextExtension cnext = c.GetCommandsNext();
 
