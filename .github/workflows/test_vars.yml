@@ -1,1 +1,13 @@
+name: Variable Testing
 
+on:
+  workflow_dispatch:
+  
+jobs:
+  build:
+
+    runs-on: windows-latest
+    
+    steps:
+    - name: Variables
+      run: echo ${{ env.GITHUB_SERVER_URL }}${{ env.GITHUB_REPOSITORY }}.git#${{ env.GITHUB_REF }}
