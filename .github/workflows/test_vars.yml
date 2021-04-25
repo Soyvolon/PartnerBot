@@ -16,6 +16,6 @@ jobs:
       id: extract_branch
     - name: Save Docker URL
       shell: bash
-      run: echo "docker_url=$(echo ${{ github.server_url }}/${{ github.repository }}.git#${{ env.branch_name }} | tr / -)" >> $GITHUB_ENV
+      run: echo "docker_url=$(echo ${{ github.server_url }}/${{ github.repository }}.git#${{ env.branch_name }})" >> $GITHUB_ENV
       id: save_docker_url
     - run: echo ${{ env.docker_url }}
