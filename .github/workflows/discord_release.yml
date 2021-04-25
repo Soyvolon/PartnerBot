@@ -39,7 +39,7 @@ jobs:
       uses: garygrossgarten/github-action-ssh@release
       continue-on-error: true
       with:
-        command: docker build -t partner-bot ${{ env.docker_url }}
+        command: docker build -t partner-bot ${{ env.docker_url }} && docker image prune -f
         host: ${{ secrets.RELEASE_HOST }}
         username: ${{ secrets.RELEASE_USER }}
         passphrase: ${{ secrets.RELEASE_PASSPHRASE }}
