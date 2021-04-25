@@ -129,13 +129,18 @@ namespace PartnerBot.Discord
                 Buckets[b].Add(_client.ShardClients[i]);
             }
 
+            this._client.Logger.LogInformation(Event_ShardBooter, $"Built {Buckets.Count} buckets for {shardCount} shards.");
+
             await BootBuckets();
         }
 
         private async Task BootBuckets()
         {
+            int c = 0;
             foreach(var bucket in Buckets)
             {
+                this._client.Logger.LogInformation(Event_ShardBooter, $"Booting bucket {c++}");
+
                 int con = 0;
                 List<DiscordClient> nextRun = new();
                 for(int i = 0; i < bucket.Count; i++)
