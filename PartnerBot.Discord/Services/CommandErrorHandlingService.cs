@@ -12,7 +12,7 @@ namespace PartnerBot.Discord.Services
         public async Task RespondCommandNotFound(DiscordChannel c, string prefix)
         {
             await c.SendMessageAsync(new DiscordEmbedBuilder()
-                .WithDescription($"Command Not Found. Use `{prefix}help` to see a list of commands. Or, take a look at our [Documentation]() for more" +
+                .WithDescription($"Command Not Found. Use `{prefix}help` to see a list of commands. Or, take a look at our [Documentation](https://soyvolon.github.io/PartnerBot) for more" +
                 $" information!")
                 .WithColor(DiscordColor.DarkRed));
         }
