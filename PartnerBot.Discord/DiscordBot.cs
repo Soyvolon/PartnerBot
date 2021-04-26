@@ -66,7 +66,6 @@ namespace PartnerBot.Discord
         {
             this._client.MessageCreated += this._command.Client_MessageCreated;
             this._client.Ready += Client_Ready;
-            this._client.MessageCreated += this._command.Client_MessageCreated;
             this._client.Ready += (c, e) =>
             {
                 _ = Task.Run(() =>
