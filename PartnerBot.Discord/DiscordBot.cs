@@ -66,8 +66,34 @@ namespace PartnerBot.Discord
         {
             this._client.MessageCreated += this._command.Client_MessageCreated;
             this._client.Ready += Client_Ready;
+            this._client.MessageCreated += this._command.Client_MessageCreated;
+            this._client.Ready += (c, e) =>
+            {
+                _ = Task.Run(() =>
+                {
+                    this._verify.Start();
+                    this.PartnerTimer = new(OnPartnerRunTimer, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+                });
+
+                c.Logger.LogInformation("Client Ready");
+
+                return Task.CompletedTask;
+            };
+            this._client.ClientErrored += (x, y) =>
+            {
+                x.Logger.LogError(y.Exception, $"Client Errored in {y.EventName}");
+                return Task.CompletedTask;
+            };
 
             System.Collections.Generic.IReadOnlyDictionary<int, CommandsNextExtension>? cnext = await this._client.UseCommandsNextAsync(GetCNextConfig());
+
+            foreach(var c in cnext.Values)
+            {
+                c.RegisterCommands(Assembly.GetAssembly(typeof(CommandHandlingService)));
+
+                c.CommandErrored += this._error.Client_CommandErrored;
+                c.CommandExecuted += this._error.Client_CommandExecuted;
+            }
 
             System.Collections.Generic.IReadOnlyDictionary<int, DSharpPlus.Interactivity.InteractivityExtension>? interact = await this._client.UseInteractivityAsync(new());
 
@@ -98,38 +124,40 @@ namespace PartnerBot.Discord
 
         public async Task StartAsync()
         {
-            _client.ClientErrored += (x, y) =>
-            {
-                x.Logger.LogError(y.Exception, $"Client Errored in {y.EventName}");
-                return Task.CompletedTask;
-            };
+            await this._client.StartAsync();
 
-            int shardCount = PbCfg!.ShardCount == 1 ? _client.GatewayInfo.ShardCount : PbCfg.ShardCount;
-            int concurrency = _client.GatewayInfo.SessionBucket.MaxConcurrency;
+            //_client.ClientErrored += (x, y) =>
+            //{
+            //    x.Logger.LogError(y.Exception, $"Client Errored in {y.EventName}");
+            //    return Task.CompletedTask;
+            //};
 
-            Buckets = new();
+            //int shardCount = PbCfg!.ShardCount == 1 ? _client.GatewayInfo.ShardCount : PbCfg.ShardCount;
+            //int concurrency = _client.GatewayInfo.SessionBucket.MaxConcurrency;
 
-            int b = -1;
-            for(int i = 0; i < shardCount; i++)
-            {
-                if (i % concurrency == 0)
-                {
-                    Buckets.Add(new());
-                    b++;
-                }
+            //Buckets = new();
 
-                Buckets[b].Add(_client.ShardClients[i]);
-            }
+            //int b = -1;
+            //for(int i = 0; i < shardCount; i++)
+            //{
+            //    if (i % concurrency == 0)
+            //    {
+            //        Buckets.Add(new());
+            //        b++;
+            //    }
 
-            this._client.Logger.LogInformation(Event_ShardBooter, $"Built {Buckets.Count} buckets for {shardCount} shards.");
+            //    Buckets[b].Add(_client.ShardClients[i]);
+            //}
 
-            await BootBuckets();
+            //this._client.Logger.LogInformation(Event_ShardBooter, $"Built {Buckets.Count} buckets for {shardCount} shards.");
 
-            this._client.Logger.LogInformation(Event_ShardBooter, $"Shard booting complete, attaching events.");
+            //await BootBuckets();
 
-            foreach(var bucket in Buckets)
-                foreach(var c in bucket)
-                    InitalizeSingleClient(c);
+            //this._client.Logger.LogInformation(Event_ShardBooter, $"Shard booting complete, attaching events.");
+
+            //foreach(var bucket in Buckets)
+            //    foreach(var c in bucket)
+            //        InitalizeSingleClient(c);
 
             _ = Task.Run(() =>
             {

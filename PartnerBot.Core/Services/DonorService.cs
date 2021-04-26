@@ -1,4 +1,6 @@
-﻿using System.Linq;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 using DSharpPlus;
@@ -23,13 +25,16 @@ namespace PartnerBot.Core.Services
 
         private readonly DiscordShardedClient _client;
         private readonly PartnerBotConfiguration _pcfg;
+        private readonly DiscordRestClient _rest;
 
         private DiscordGuild? HomeGuild = null;
 
-        public DonorService(DiscordShardedClient client, PartnerBotConfiguration pcfg)
+        public DonorService(DiscordShardedClient client, PartnerBotConfiguration pcfg,
+            DiscordRestClient rest)
         {
             this._client = client;
             this._pcfg = pcfg;
+            this._rest = rest;
         }
 
         public async Task<int> GetDonorRankAsync(ulong ownerId)
@@ -37,25 +42,37 @@ namespace PartnerBot.Core.Services
             if(this.HomeGuild is null)
             {
                 foreach (DiscordClient? shard in this._client.ShardClients.Values)
+                {
                     if (shard.Guilds.TryGetValue(this._pcfg.HomeGuild, out this.HomeGuild))
+                    {
+                        this.HomeGuild = await shard.GetGuildAsync(this._pcfg.HomeGuild);
                         break;
+                    }
+                }
             }
 
             if (this.HomeGuild is not null)
             {
-                DiscordMember? m = await this.HomeGuild.GetMemberAsync(ownerId);
-
-                int rank = 0;
-                foreach (DiscordRole? role in m.Roles)
+                try
                 {
-                    PartnerBotDonorRoleConfiguration? r;
-                    if ((r = this._pcfg.DonorRoles.FirstOrDefault(x => x.RoleId == role.Id)) is not null)
-                    {
-                        rank += r.Weight;
-                    }
-                }
+                    DiscordMember? m = await this.HomeGuild.GetMemberAsync(ownerId);
 
-                return rank;
+                    int rank = 0;
+                    foreach (DiscordRole? role in m.Roles)
+                    {
+                        PartnerBotDonorRoleConfiguration? r;
+                        if ((r = this._pcfg.DonorRoles.FirstOrDefault(x => x.RoleId == role.Id)) is not null)
+                        {
+                            rank += r.Weight;
+                        }
+                    }
+
+                    return rank;
+                }
+                catch (Exception ex)
+                {
+                    return 0;
+                }
             }
             else
             {
