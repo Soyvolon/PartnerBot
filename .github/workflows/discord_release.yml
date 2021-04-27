@@ -20,7 +20,7 @@ jobs:
     - name: Extract Tag Name
       if: github.event_name == 'release'
       shell: bash
-      run: echo "branch_name=$(echo ${GITHUB_REF#regs/tags/} | tr / -)" >> $GITHUB_ENV
+      run: echo "branch_name=$(echo ${GITHUB_REF#refs/tags/} | tr / -)" >> $GITHUB_ENV
       id: extract_tag
     - name: Save Docker URL
       shell: bash
