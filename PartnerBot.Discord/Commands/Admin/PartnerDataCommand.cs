@@ -97,12 +97,14 @@ namespace PartnerBot.Discord.Commands.Admin
                     .AddField("Webhook ID", $"{partner.WebhookId}", true)
                     .WithImageUrl(partner.Banner)
                     .WithAuthor(partner.GuildName, null, partner.GuildIcon)
-                    .WithDescription($"**Message:** \n\n{partner.Message}\n\n")
                     .WithTitle("Guild Database Info")
                     .WithFooter($"{ctx.Prefix}data")
                     .WithTimestamp(DateTime.Now);
 
                 await ctx.RespondAsync(dbInfo);
+                await ctx.RespondAsync($"```{partner.Message}```");
+                foreach (var embed in partner.MessageEmbeds)
+                    await ctx.RespondAsync(embed);
             }
 
             PartnerBot.Core.Entities.Moderation.GuildBan? ban = await this._ban.GetBanAsync(guildId);
