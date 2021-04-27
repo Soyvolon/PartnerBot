@@ -105,6 +105,9 @@ namespace PartnerBot.Discord
         {
             sender.Logger.LogInformation($"Shard {sender.ShardId} Ready");
 
+            if(sender.Guilds.ContainsKey(PbCfg!.HomeGuild))
+                _ = Task.Run(() => this._verify.Start());
+
             return Task.CompletedTask;
         }
 
@@ -160,7 +163,6 @@ namespace PartnerBot.Discord
 
             _ = Task.Run(() =>
             {
-                this._verify.Start();
                 this.PartnerTimer = new(OnPartnerRunTimer, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
             });
         }
