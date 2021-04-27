@@ -45,7 +45,14 @@ namespace PartnerBot.Discord.Commands.Core
                 return (res, false);
             }
 
-            await res.Result.DeleteAsync();
+            try
+            {
+                await res.Result.DeleteAsync();
+            }
+            catch
+            {
+                // Well they are going to have lots of spam.
+            }
 
             return (res, true);
         }
