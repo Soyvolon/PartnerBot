@@ -73,23 +73,26 @@ namespace PartnerBot.Core.Entities
             {
                 if(++links > this.DonorRank)
                 {
-                    this.Message.Replace(l, string.Empty);
+                    this.Message = this.Message.Replace(l, string.Empty);
                 }
             }
 
+            var newEmbeds = new List<DiscordEmbedBuilder>();
             foreach(DiscordEmbed? embed in this.MessageEmbeds)
             {
                 IReadOnlyList<string>? eMsgLinks = embed.Description.GetUrls();
+
+                var newEmbed = new DiscordEmbedBuilder(embed);
 
                 foreach (string? l in eMsgLinks)
                 {
                     if (++links > this.DonorRank)
                     {
-                        embed.Description.Replace(l, string.Empty);
+                        newEmbed.Description = embed.Description.Replace(l, string.Empty);
                     }
                 }
 
-                foreach(DiscordEmbedField? field in embed.Fields)
+                foreach(DiscordEmbedField? field in newEmbed.Fields)
                 {
                     IReadOnlyList<string>? fLinks = field.Value.GetUrls();
 
@@ -97,7 +100,7 @@ namespace PartnerBot.Core.Entities
                     {
                         if (++links > this.DonorRank)
                         {
-                            field.Value.Replace(l, string.Empty);
+                            field.Value = field.Value.Replace(l, string.Empty);
                         }
                     }
 
@@ -105,7 +108,7 @@ namespace PartnerBot.Core.Entities
 
                     foreach (string? l in titleLinks)
                     {
-                        field.Name.Replace(l, string.Empty);
+                        field.Name = field.Name.Replace(l, string.Empty);
                     }
                 }
 
@@ -113,9 +116,15 @@ namespace PartnerBot.Core.Entities
 
                 foreach (string? l in tLinks)
                 {
-                    embed.Title.Replace(l, string.Empty);
+                    newEmbed.Title = embed.Title.Replace(l, string.Empty);
                 }
+
+                newEmbeds.Add(newEmbed);
             }
+
+            this.MessageEmbeds.Clear();
+            foreach (var e in newEmbeds)
+                this.MessageEmbeds.Add(e.Build());
 
             this.LinksUsed = links > this.DonorRank ? this.DonorRank : links;
         }
