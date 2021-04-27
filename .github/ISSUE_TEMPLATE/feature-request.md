@@ -2,7 +2,7 @@
 name: Feature Request
 about: Suggest an idea for Partner Bot
 title: ''
-labels: enhancement
+labels: ''
 assignees: ''
 
 ---

@@ -2,7 +2,7 @@
 name: Bug Report
 about: Create a report to improve Partner Bot
 title: ''
-labels: bug
+labels: ''
 assignees: ''
 
 ---
