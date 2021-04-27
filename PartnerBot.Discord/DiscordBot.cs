@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
+using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity.Extensions;
 
 using Microsoft.Extensions.Logging;
@@ -42,6 +43,7 @@ namespace PartnerBot.Discord
         private readonly IServiceProvider _serviceProvider;
 
         private Timer PartnerTimer { get; set; }
+        private bool StartedVerify { get; set; } = false;
 
         public DiscordBot(PartnerSenderService partnerSender,
             DiscordShardedClient client, DiscordRestClient rest,
@@ -66,18 +68,7 @@ namespace PartnerBot.Discord
         {
             this._client.MessageCreated += this._command.Client_MessageCreated;
             this._client.Ready += Client_Ready;
-            this._client.Ready += (c, e) =>
-            {
-                _ = Task.Run(() =>
-                {
-                    this._verify.Start();
-                    this.PartnerTimer = new(OnPartnerRunTimer, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
-                });
-
-                c.Logger.LogInformation("Client Ready");
-
-                return Task.CompletedTask;
-            };
+            this._client.GuildDownloadCompleted += Client_GuildDownloadComplete;
             this._client.ClientErrored += (x, y) =>
             {
                 x.Logger.LogError(y.Exception, $"Client Errored in {y.EventName}");
@@ -105,8 +96,19 @@ namespace PartnerBot.Discord
         {
             sender.Logger.LogInformation($"Shard {sender.ShardId} Ready");
 
-            if(sender.Guilds.ContainsKey(PbCfg!.HomeGuild))
+            return Task.CompletedTask;
+        }
+
+        private Task Client_GuildDownloadComplete(DiscordClient c, GuildDownloadCompletedEventArgs e)
+        {
+            c.Logger.LogInformation($"Guild Download completed for shard {c.ShardId}");
+
+            if (e.Guilds.ContainsKey(PbCfg!.HomeGuild))
+            {
+                c.Logger.LogInformation("Starting Guild Verification Service.");
+                StartedVerify = true;
                 _ = Task.Run(() => this._verify.Start());
+            }
 
             return Task.CompletedTask;
         }
@@ -161,9 +163,16 @@ namespace PartnerBot.Discord
             //    foreach(var c in bucket)
             //        InitalizeSingleClient(c);
 
-            _ = Task.Run(() =>
+            _ = Task.Run(async () =>
             {
                 this.PartnerTimer = new(OnPartnerRunTimer, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
+                await Task.Delay(TimeSpan.FromSeconds(30 * this._client.ShardClients.Count));
+                if(!StartedVerify)
+                {
+                    this._verify.Start();
+                    StartedVerify = true;
+                    this._client.Logger.LogInformation("Froce Started Guild Verification Service.");
+                }
             });
         }
 
