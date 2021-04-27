@@ -26,7 +26,7 @@ namespace PartnerBot.Discord.Commands.Conditions
             
             Partner? partner = await db.FindAsync<Partner>(ctx.Guild.Id);
 
-            return partner is not null && partner.IsSetup();
+            return partner is not null && partner.IsSetup().Item1;
         }
     }
 }

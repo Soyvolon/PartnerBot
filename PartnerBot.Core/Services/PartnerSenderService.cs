@@ -5,6 +5,8 @@ using System.Linq;
 using System.Threading.Tasks;
 
 using DSharpPlus;
+using DSharpPlus.Entities;
+using DSharpPlus.Exceptions;
 
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,15 +28,17 @@ namespace PartnerBot.Core.Services
         private readonly IServiceProvider _services;
         private readonly DiscordRestClient _rest;
         private readonly ILogger _logger;
+        private readonly PartnerManagerService _partners;
         private ConcurrentQueue<PartnerData> PartnerDataQueue { get; init; }
         private ConcurrentDictionary<ulong, ConcurrentQueue<ulong>> Cache { get; init; }
         private const int CAHCE_MAX_SIZE = 24;
 
-        public PartnerSenderService(IServiceProvider services, DiscordRestClient rest)
+        public PartnerSenderService(IServiceProvider services, DiscordRestClient rest, PartnerManagerService partners)
         {
             this._services = services;
             this._rest = rest;
             this._logger = this._rest.Logger;
+            this._partners = partners;
 
             this.PartnerDataQueue = new();
             this.Cache = new();
@@ -84,7 +88,25 @@ namespace PartnerBot.Core.Services
                 }
                 catch (Exception ex)
                 {
-                    this._logger.LogError(ex, $"Failed to execute Partner Webhook for guild {data.GuildId}");
+                    this._logger.LogWarning(ex, $"Failed to execute Partner Webhook for guild {data.GuildId}, disabiling partner.");
+
+                    _ = Task.Run(async () =>
+                    {
+                        await _partners.UpdateOrAddPartnerAsync(data.GuildId, () => new()
+                        {
+                            Active = false
+                        });
+
+                        if (ex is BadRequestException)
+                        {
+                            await this._rest.ExecuteWebhookAsync(data.WebhookId, data.WebhookToken, new DiscordWebhookBuilder()
+                                .AddEmbed(new DiscordEmbedBuilder()
+                                    .WithColor(DiscordColor.DarkRed)
+                                    .WithDescription("Partner Bot has been disabled on your server because your Partner Message has exceeded 1900 characters," +
+                                    " or your setup is otherwise invalid. Please use `pb!setup` and reconfigure Partner Bot.")));
+                        }
+                    });
+
                     continue;
                 }
             }

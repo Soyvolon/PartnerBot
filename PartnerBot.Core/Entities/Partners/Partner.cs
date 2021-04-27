@@ -44,11 +44,18 @@ namespace PartnerBot.Core.Entities
         /// Gets a rough idea if the bot has been setup before or not.
         /// </summary>
         /// <returns>True if the bot has been setup before.</returns>
-        public bool IsSetup()
+        public (bool, string) IsSetup()
         {
-            return !string.IsNullOrWhiteSpace(this.WebhookToken)
-                && this.WebhookId != 0
-                && !string.IsNullOrWhiteSpace(this.Invite);
+            if(string.IsNullOrWhiteSpace(this.WebhookToken) || this.WebhookId == 0)
+                return (false, "Webhook is missing or invalid.");
+
+            if (string.IsNullOrWhiteSpace(this.Invite))
+                return (false, "Invite is missing or invalid.");
+
+            if (Message.Length > 1900)
+                return (false, "Message exceedes 1900 characters .");
+
+            return (true, "");
         }
 
         public void ModifyToDonorRank()

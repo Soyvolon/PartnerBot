@@ -309,7 +309,19 @@ namespace PartnerBot.Discord.Commands.Core
                     && trimmed.Equals("save"))
                 {
                     if (!string.IsNullOrWhiteSpace(message))
+                    {
+                        if(message.Length > 1900)
+                        {
+                            await statusMessage.ModifyAsync(statusEmbed
+                                .WithColor(DiscordColor.DarkRed)
+                                .WithDescription("A message cannot be longer than 1900 characters! Please input a valid message before saving.")
+                                .Build());
+
+                            continue;
+                        }
+
                         break;
+                    }
                     else
                     {
                         await statusMessage.ModifyAsync(statusEmbed
@@ -319,6 +331,16 @@ namespace PartnerBot.Discord.Commands.Core
 
                         continue;
                     }
+                }
+
+                if(msg.Length > 1900)
+                {
+                    await statusMessage.ModifyAsync(statusEmbed
+                                .WithColor(DiscordColor.DarkRed)
+                                .WithDescription("A message cannot be longer than 1900 characters!")
+                                .Build());
+
+                    continue;
                 }
 
                 if (pMessage is not null)

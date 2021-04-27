@@ -195,15 +195,17 @@ namespace PartnerBot.Discord.Commands.Core
                         break;
 
                     case "toggle":
-                        if (!partner.Active && partner.IsSetup())
-                            partner.Active = true;
-                        else if (partner.Active)
+                        var setup = partner.IsSetup();
+                        if (partner.Active)
                             partner.Active = false;
+                        else if (!partner.Active && setup.Item1)
+                            partner.Active = true;
                         else
                         {
                             statusEmbed.WithTitle("Partner Bot Setup - Main")
                                 .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**Core setup is not complete. Please complete the required settings before toggling Partner Bot**")
+                                $"**Core setup is not complete. Please complete the required settings before toggling Partner Bot**\n\n" +
+                                $"**Setup Erroed because:** `{setup.Item2}`")
                                 .WithColor(DiscordColor.DarkRed);
 
                             errored = true;
