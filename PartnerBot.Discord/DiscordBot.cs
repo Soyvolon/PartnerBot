@@ -224,14 +224,7 @@ namespace PartnerBot.Discord
             c.MessageCreated += this._command.Client_MessageCreated;
             c.Ready += (c, e) =>
             {
-                _ = Task.Run(() =>
-                {
-                    this._verify.Start();
-                    this.PartnerTimer = new(OnPartnerRunTimer, null, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
-                });
-
-                c.Logger.LogInformation("Client Ready");
-
+                c.Logger.LogInformation($"Shard {c.ShardId} Ready");
                 return Task.CompletedTask;
             };
             c.ClientErrored += (x, y) =>
