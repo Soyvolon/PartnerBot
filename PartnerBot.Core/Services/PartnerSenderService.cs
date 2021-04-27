@@ -69,14 +69,24 @@ namespace PartnerBot.Core.Services
             // ... Then execute the queue (off with its head!).
             await ExecuteWebhooksAsync(senderArgs);
 
-            this._logger.LogInformation($"Partner webhooks are started.");
+            this._logger.LogInformation($"Webhooks are finished.");
         }
 
         private async Task ExecuteWebhooksAsync(PartnerSenderArguments senderArguments)
         {
+            this._logger.LogInformation("Starting webhook execution.");
+
             while(this.PartnerDataQueue.TryDequeue(out PartnerData? data))
             {
-                await data.ExecuteAsync(this._rest, senderArguments);
+                try
+                {
+                    await data.ExecuteAsync(this._rest, senderArguments);
+                }
+                catch (Exception ex)
+                {
+                    this._logger.LogError(ex, $"Failed to execute Partner Webhook for guild {data.GuildId}");
+                    continue;
+                }
             }
         }
 
