@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 using DSharpPlus;
 using DSharpPlus.CommandsNext;
+using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity.Extensions;
 
@@ -44,6 +45,8 @@ namespace PartnerBot.Discord
 
         private Timer PartnerTimer { get; set; }
         private bool StartedVerify { get; set; } = false;
+
+        public const string Version = "V6.1.0";
 
         public DiscordBot(PartnerSenderService partnerSender,
             DiscordShardedClient client, DiscordRestClient rest,
@@ -95,6 +98,8 @@ namespace PartnerBot.Discord
         private Task Client_Ready(DiscordClient sender, DSharpPlus.EventArgs.ReadyEventArgs e)
         {
             sender.Logger.LogInformation($"Shard {sender.ShardId} Ready");
+
+            _ = Task.Run(async () => await sender.UpdateStatusAsync(new($"pb!help | {Version}"), UserStatus.Online));
 
             return Task.CompletedTask;
         }
