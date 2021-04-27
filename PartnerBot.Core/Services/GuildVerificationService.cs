@@ -63,11 +63,12 @@ namespace PartnerBot.Core.Services
                 this.ChannelTree[i] = new();
             }
 
-            PartnerDatabaseContext? _database = this._services.GetRequiredService<PartnerDatabaseContext>();
+            using var scope = this._services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
 
             ConcurrentBag<Partner> bag = new();
 
-            await _database.Partners.AsNoTracking().ForEachAsync(x =>
+            await db.Partners.AsNoTracking().ForEachAsync(x =>
             {
                 if (x.Active)
                     bag.Add(x);
@@ -164,14 +165,15 @@ namespace PartnerBot.Core.Services
 
                     DiscordGuild? guild = await this._rest.GetGuildAsync(id.Value);
 
-                    PartnerDatabaseContext? _database = this._services.GetRequiredService<PartnerDatabaseContext>();
-                    Partner? p = await _database.FindAsync<Partner>(id.Value);
+                    using var scope = this._services.CreateScope();
+                    var db = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
+                    Partner? p = await db.FindAsync<Partner>(id.Value);
                     int rank = await this._donor.GetDonorRankAsync(p.OwnerId);
 
                     p.DonorRank = rank;
                     p.UserCount = guild.MemberCount;
 
-                    await _database.SaveChangesAsync();
+                    await db.SaveChangesAsync();
                 }
                 catch
                 {
@@ -184,10 +186,11 @@ namespace PartnerBot.Core.Services
 
         private async Task DisablePartner(ulong guildId)
         {
-            PartnerDatabaseContext? _database = this._services.GetRequiredService<PartnerDatabaseContext>();
-            Partner? p = await _database.FindAsync<Partner>(guildId);
+            using var scope = this._services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
+            Partner? p = await db.FindAsync<Partner>(guildId);
             p.Active = false;
-            await _database.SaveChangesAsync();
+            await db.SaveChangesAsync();
 
             RemovePartner(p);
         }

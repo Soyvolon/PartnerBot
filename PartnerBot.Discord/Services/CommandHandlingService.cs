@@ -6,6 +6,7 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -84,7 +85,8 @@ namespace PartnerBot.Discord.Services
 
         private async Task ExecuteCommandAsync(DiscordClient sender, MessageCreateEventArgs e)
         {
-            PartnerDatabaseContext? model = this._services.GetRequiredService<PartnerDatabaseContext>();
+            using var scope = this._services.CreateScope();
+            var model = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
 
             DiscordGuildConfiguration guildConfig = await model.FindAsync<DiscordGuildConfiguration>(e.Guild.Id);
 

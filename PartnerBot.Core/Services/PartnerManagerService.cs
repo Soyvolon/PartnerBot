@@ -6,6 +6,8 @@ using DSharpPlus;
 using DSharpPlus.Entities;
 using DSharpPlus.Exceptions;
 
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 using PartnerBot.Core.Database;
@@ -19,24 +21,26 @@ namespace PartnerBot.Core.Services
     public class PartnerManagerService
     {
         private readonly GuildVerificationService _channelVerification;
-        private readonly PartnerDatabaseContext _database;
         private readonly DiscordRestClient _rest;
+        private readonly IServiceProvider _services;
 
-        public PartnerManagerService(GuildVerificationService channelVerification, PartnerDatabaseContext database,
-            DiscordRestClient rest)
+        public PartnerManagerService(GuildVerificationService channelVerification,
+            DiscordRestClient rest, IServiceProvider services)
         {
             this._channelVerification = channelVerification;
-            this._database = database;
             this._rest = rest;
+            _services = services;
         }
 
         public async Task<(bool, string)> AddPartnerAsync(Partner partner)
         {
             try
             {
+                using var scope = this._services.CreateScope();
+                var database = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
                 // get webhook token.
-                await this._database.AddAsync(partner);
-                await this._database.SaveChangesAsync();
+                await database.AddAsync(partner);
+                await database.SaveChangesAsync();
 
                 if (partner.Active)
                     this._channelVerification.AddPartner(partner);
@@ -57,13 +61,15 @@ namespace PartnerBot.Core.Services
         /// <returns>The removed partner</returns>
         public async Task<(Partner?, string)> RemovePartnerAsync(ulong guildId)
         {
-            Partner? partner = await this._database.FindAsync<Partner>(guildId);
+            using var scope = this._services.CreateScope();
+            var database = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
+            Partner? partner = await database.FindAsync<Partner>(guildId);
 
             if (partner is null) return (null, "No partner found for that ID");
 
-            _ = this._database.Remove(partner);
+            _ = database.Remove(partner);
 
-            await this._database.SaveChangesAsync();
+            await database.SaveChangesAsync();
 
             this._channelVerification.RemovePartner(partner);
 
@@ -73,8 +79,9 @@ namespace PartnerBot.Core.Services
         public async Task<(Partner?, string)> UpdateOrAddPartnerAsync(ulong guildId, Func<PartnerUpdater> update)
         {
             PartnerUpdater? data = update.Invoke();
-
-            Partner? p = await this._database.FindAsync<Partner>(guildId);
+            using var scope = this._services.CreateScope();
+            var database = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
+            Partner? p = await database.FindAsync<Partner>(guildId);
 
             if (p is null)
             {
@@ -82,8 +89,8 @@ namespace PartnerBot.Core.Services
                 {
                     GuildId = guildId
                 };
-                await this._database.AddAsync(p);
-                await this._database.SaveChangesAsync();
+                await database.AddAsync(p);
+                await database.SaveChangesAsync();
             }
 
             if (data.GuildIcon is not null)
@@ -219,15 +226,17 @@ namespace PartnerBot.Core.Services
             if (donorCheck)
                 p.ModifyToDonorRank();
 
-            this._database.Update(p);
-            await this._database.SaveChangesAsync();
+            database.Update(p);
+            await database.SaveChangesAsync();
 
             return (p, string.Empty);
         }
 
         public async Task<TProperty?> GetPartnerElementAsync<TProperty>(ulong guildId, Expression<Func<Partner, TProperty>> propertyExpression)
         {
-            Partner? p = await this._database.FindAsync<Partner>(guildId);
+            using var scope = this._services.CreateScope();
+            var database = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
+            Partner? p = await database.FindAsync<Partner>(guildId);
 
             if (p is null) return default;
 

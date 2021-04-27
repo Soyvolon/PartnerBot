@@ -8,6 +8,7 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using PartnerBot.Core.Database;
@@ -36,7 +37,8 @@ namespace PartnerBot.Discord.Commands.Admin
         [RequireCessumStaff]
         public async Task PartnerDataCommandAsync(CommandContext ctx, ulong guildId)
         {
-            PartnerDatabaseContext? db = this._services.GetRequiredService<PartnerDatabaseContext>();
+            using var scope = this._services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
             Partner? partner = await db.FindAsync<Partner>(guildId);
 
             DiscordGuild? guild = null;

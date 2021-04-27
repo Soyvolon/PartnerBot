@@ -71,7 +71,8 @@ namespace PartnerBot.Discord.Commands.Core
                 return;
             }
 
-            PartnerDatabaseContext? db = this._services.GetRequiredService<PartnerDatabaseContext>();
+            using var scope = this._services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
             Partner? partner = await db.Partners.AsNoTracking().FirstOrDefaultAsync(x => x.GuildId == ctx.Guild.Id);
 
             if(partner is null)
@@ -101,7 +102,14 @@ namespace PartnerBot.Discord.Commands.Core
 
             if(!string.IsNullOrWhiteSpace(partner.WebhookToken))
             {
-                hook = await ctx.Client.GetWebhookAsync(partner.WebhookId);
+                try
+                {
+                    hook = await ctx.Client.GetWebhookAsync(partner.WebhookId);
+                }
+                catch 
+                {
+                    hook = null;
+                }
                 channel = await ctx.Client.GetChannelAsync(hook.ChannelId);
                 oldChannelId = channel.Id;
             }

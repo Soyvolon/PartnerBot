@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using DSharpPlus;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 using PartnerBot.Core.Database;
@@ -22,16 +23,16 @@ namespace PartnerBot.Core.Services
     /// </summary>
     public class PartnerSenderService
     {
-        private readonly PartnerDatabaseContext _database;
+        private readonly IServiceProvider _services;
         private readonly DiscordRestClient _rest;
         private readonly ILogger _logger;
         private ConcurrentQueue<PartnerData> PartnerDataQueue { get; init; }
         private ConcurrentDictionary<ulong, ConcurrentQueue<ulong>> Cache { get; init; }
         private const int CAHCE_MAX_SIZE = 24;
 
-        public PartnerSenderService(PartnerDatabaseContext database, DiscordRestClient rest)
+        public PartnerSenderService(IServiceProvider services, DiscordRestClient rest)
         {
-            this._database = database;
+            this._services = services;
             this._rest = rest;
             this._logger = this._rest.Logger;
 
@@ -84,7 +85,10 @@ namespace PartnerBot.Core.Services
             List<Partner> baseSet = new();
             List<Partner> donorSet = new();
             List<Partner> extarSet = new();
-            await this._database.Partners.AsNoTracking().ForEachAsync(x =>
+
+            using var scope = this._services.CreateScope();
+            var database = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
+            await database.Partners.AsNoTracking().ForEachAsync(x =>
             {
                 if (x.Active)
                 {

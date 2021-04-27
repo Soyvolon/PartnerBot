@@ -23,9 +23,9 @@ namespace PartnerBot.Discord.Services
             sender.Client.Logger.LogDebug(DiscordBot.Event_ClientLogger, e.Exception, $"Exception Information for Command Error");
 
 #if DEBUG
-            await e.Context.RespondAsync($"The following error occoured: {e.Exception.Message} at ```{e.Exception.StackTrace}```");
+            await e.Context.RespondAsync($"The following error occoured: {e.Exception.Message} ```{e.Exception.StackTrace}```");
 #else
-            await e.Context.RespondAsync($"The following error occoured: {e.Exception.Message}");
+            await e.Context.RespondAsync($"The following error occoured: {e.Exception.Message} ```{e.Exception.StackTrace}```");
 #endif
         }
 

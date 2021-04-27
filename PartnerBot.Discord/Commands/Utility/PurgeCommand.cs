@@ -5,6 +5,7 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Interactivity.Extensions;
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using PartnerBot.Core.Database;
@@ -47,7 +48,8 @@ namespace PartnerBot.Discord.Commands.Utility
                 {                    
                     await this._partners.RemovePartnerAsync(ctx.Guild.Id);
 
-                    PartnerDatabaseContext? db = this._services.GetRequiredService<PartnerDatabaseContext>();
+                    using var scope = this._services.CreateScope();
+                    var db = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
 
                     await RespondSuccess("Partner config purged, leaving guild.\n\n" +
                         "Thanks for using Partner Bot!");

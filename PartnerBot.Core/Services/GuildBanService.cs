@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.Entities;
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using PartnerBot.Core.Database;
@@ -30,13 +31,15 @@ namespace PartnerBot.Core.Services
 
         public async Task<GuildBan?> GetBanAsync(ulong guildId)
         {
-            PartnerDatabaseContext? db = this._services.GetRequiredService<PartnerDatabaseContext>();
+            using var scope = this._services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
             return await db.FindAsync<GuildBan>(guildId);
         }
 
         public async Task<GuildBan> BanGuildAsync(ulong guildId, string? reason = null)
         {
-            PartnerDatabaseContext? db = this._services.GetRequiredService<PartnerDatabaseContext>();
+            using var scope = this._services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
             GuildBan? ban = await db.FindAsync<GuildBan>(guildId);
 
             if (ban is null)
@@ -62,7 +65,8 @@ namespace PartnerBot.Core.Services
 
         public async Task<bool> UnbanGuildAsync(ulong guildId)
         {
-            PartnerDatabaseContext? db = this._services.GetRequiredService<PartnerDatabaseContext>();
+            using var scope = this._services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
             GuildBan? ban = await db.FindAsync<GuildBan>(guildId);
 
             if (ban is not null)

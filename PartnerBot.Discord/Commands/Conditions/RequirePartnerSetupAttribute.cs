@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using PartnerBot.Core.Database;
@@ -20,8 +21,9 @@ namespace PartnerBot.Discord.Commands.Conditions
         public override async Task<bool> ExecuteCheckAsync(CommandContext ctx, bool help)
         {
             if (DiscordBot.Services is null) return false;
-
-            PartnerDatabaseContext? db = DiscordBot.Services.GetRequiredService<PartnerDatabaseContext>();
+            using var scope = DiscordBot.Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
+            
             Partner? partner = await db.FindAsync<Partner>(ctx.Guild.Id);
 
             return partner is not null && partner.IsSetup();

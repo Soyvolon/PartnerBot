@@ -60,11 +60,11 @@ namespace PartnerBot
                 ShardCount = pcfg.ShardCount
             };
 
-            services.AddDbContext<PartnerDatabaseContext>(options =>
-            {
-                options.UseSqlite(dbConfig.PartnerbotDataSource);
-            },
-            ServiceLifetime.Transient, ServiceLifetime.Scoped)
+            services
+                .AddDbContext<PartnerDatabaseContext>(options =>
+                {
+                    options.UseSqlite(dbConfig.PartnerbotDataSource);
+                }, ServiceLifetime.Transient, ServiceLifetime.Singleton)
                 .AddSingleton<DiscordShardedClient>((s) =>
                 {
                     return new(botCfg);
@@ -93,10 +93,11 @@ namespace PartnerBot
                 .AddSingleton(pcfg);
 
             IServiceProvider provider = services.BuildServiceProvider();
-
-            PartnerDatabaseContext? db = provider.GetRequiredService<PartnerDatabaseContext>();
-
-            await ApplyDatabaseMigrations(db);
+            using (var scope = provider.CreateScope())
+            {
+                PartnerDatabaseContext? db = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
+                await ApplyDatabaseMigrations(db);
+            }
 
             DiscordBot? bot = provider.GetRequiredService<DiscordBot>();
 
