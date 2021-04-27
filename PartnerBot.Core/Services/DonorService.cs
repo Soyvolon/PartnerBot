@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using DSharpPlus;
 using DSharpPlus.Entities;
 
+using Microsoft.Extensions.Logging;
+
 using PartnerBot.Core.Entities.Configuration;
 
 namespace PartnerBot.Core.Services
@@ -71,6 +73,7 @@ namespace PartnerBot.Core.Services
                 }
                 catch (Exception ex)
                 {
+                    this._rest.Logger.LogWarning(ex, $"Donor rank get failed for {ownerId}");
                     return 0;
                 }
             }
