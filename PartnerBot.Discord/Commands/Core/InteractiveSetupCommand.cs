@@ -105,13 +105,15 @@ namespace PartnerBot.Discord.Commands.Core
                 try
                 {
                     hook = await ctx.Client.GetWebhookAsync(partner.WebhookId);
+                    channel = await ctx.Client.GetChannelAsync(hook.ChannelId);
+                    oldChannelId = channel.Id;
                 }
                 catch 
                 {
                     hook = null;
+                    oldChannelId = 0;
+                    channel = null;
                 }
-                channel = await ctx.Client.GetChannelAsync(hook.ChannelId);
-                oldChannelId = channel.Id;
             }
 
             var statusEmbed = new DiscordEmbedBuilder(this.SetupBase);
