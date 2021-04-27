@@ -8,6 +8,7 @@ using DSharpPlus.Entities;
 using PartnerBot.Core.Entities;
 using PartnerBot.Core.Entities.Moderation;
 using PartnerBot.Core.Services;
+using PartnerBot.Core.Utils;
 using PartnerBot.Discord.Commands.Conditions;
 
 namespace PartnerBot.Discord.Commands.Core
@@ -44,6 +45,13 @@ namespace PartnerBot.Discord.Commands.Core
 
             if(GuildVerificationService.VerifyChannel(channel))
             {
+                IReadOnlyList<string>? links = message.GetUrls();
+
+                foreach (string? l in links)
+                {
+                    message = message.Remove(message.IndexOf(l), l.Length);
+                }
+
                 int drank = await this._donor.GetDonorRankAsync(ctx.Guild.OwnerId);
                 (Partner?, string) res = await this._partners.UpdateOrAddPartnerAsync(ctx.Guild.Id, () => {
                     PartnerUpdater dat = new()
