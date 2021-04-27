@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
 using PartnerBot.Core.Database;
@@ -48,6 +49,30 @@ namespace PartnerBot.Discord.Commands.Admin
 
             await RespondSuccess($"Modified to donor rank: {partner.DonorRank}");
             await ctx.RespondAsync($"```{partner.Message}```");
+        }
+
+        [Command("removelinks")]
+        [Description("Removes links from aall partner messages.")]
+        [Hidden]
+        [RequireCessumStaff]
+        public async Task RunLinkRemovalCommandAsync(CommandContext ctx, bool activeOnly = false)
+        {
+            await RespondSuccess("Starting ...");
+
+            using var scope = this._services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<PartnerDatabaseContext>();
+            await db.Partners.ForEachAsync(x =>
+            {
+                if (activeOnly)
+                    if (!x.Active) return;
+
+                x.ModifyToDonorRank();
+                db.Update(x);
+            });
+
+            await db.SaveChangesAsync();
+
+            await RespondSuccess("... Completed.");
         }
     }
 }
