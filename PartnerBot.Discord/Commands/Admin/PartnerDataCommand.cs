@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 using PartnerBot.Core.Database;
 using PartnerBot.Core.Entities;
+using PartnerBot.Core.Entities.Configuration;
 using PartnerBot.Core.Services;
 using PartnerBot.Discord.Commands.Conditions;
 
@@ -116,6 +117,20 @@ namespace PartnerBot.Discord.Commands.Admin
                 banInfo.WithTitle("Ban Info")
                     .AddField("Reason", ban.Reason ?? "None Given")
                     .AddField("Ban Time", ban.BanTime.ToString("U"));
+
+                await ctx.RespondAsync(banInfo);
+            }
+
+            var guildConfig = await db.FindAsync<DiscordGuildConfiguration>(ctx.Guild.Id);
+
+            if(guildConfig is not null)
+            {
+                DiscordEmbedBuilder embed = new();
+
+                embed.WithTitle("Guild Configuration")
+                    .AddField("Prefix", guildConfig.Prefix);
+
+                await ctx.RespondAsync(embed);
             }
         }
     }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 using DSharpPlus;
@@ -135,8 +136,17 @@ namespace PartnerBot.Discord.Services
         {
             //Checks if bot can't send messages, if so ignore.
             if (!msg.Channel.PermissionsFor(await msg.Channel.Guild.GetMemberAsync(_client.CurrentUser.Id)).HasPermission(Permissions.SendMessages)) return -1;
+
+            string? parts = msg.Content.Split(" ", StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+
+            if(parts is not null)
+            {
+                var trimed = parts.Replace("!", "");
+                if (trimed.StartsWith(_client.CurrentUser.Mention)) return parts.Length;
+            }
+
             // Always respond to a mention.
-            else if (msg.Content.StartsWith(_client.CurrentUser.Mention)) return _client.CurrentUser.Mention.Length;
+            if (msg.Content.StartsWith(_client.CurrentUser.Mention)) return _client.CurrentUser.Mention.Length;
             else
             {
                 try
@@ -148,7 +158,7 @@ namespace PartnerBot.Discord.Services
 
                     if (msg.Content.StartsWith(guildConfig.Prefix))
                         //Return length of server prefix.
-                        return guildConfig?.Prefix?.Length ?? -1; 
+                        return guildConfig?.Prefix?.Length ?? -1;
                     else
                         return -1;
                 }
