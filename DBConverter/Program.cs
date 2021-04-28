@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 using Microsoft.EntityFrameworkCore;
@@ -9,7 +10,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
+using Newtonsoft.Json;
+
 using PartnerBot.Core.Database;
+using PartnerBot.Core.Entities;
 
 namespace DBConverter
 {
@@ -75,18 +79,30 @@ namespace DBConverter
                     ulong uid = (ulong)x.GuildId;
                     if (!added.Add(uid)) return;
 
-                    await local.Partners.AddAsync(new()
+                    var item = await local.FindAsync<Partner>((ulong)x.GuildId);
+                    if (item is null)
                     {
-                        Active = false,
-                        Banner = x.Banner,
-                        DonorRank = x.DonorRank.HasValue ? x.DonorRank.Value - 1 : 0,
-                        GuildId = uid,
-                        Message = x.Message.Length <= 2 ? "" : x.Message[1..(x.Message.Length-2)],
-                        NSFW = Convert.ToBoolean(x.Nsfw ?? 0),
-                        ReceiveNSFW = Convert.ToBoolean(x.ReceiveNsfw ?? 0),
-                        OwnerId = (ulong)x.OwnerId,
-                        GuildName = string.IsNullOrWhiteSpace(x.GuildName) ? "n/a" : x.GuildName
-                    });
+                        await local.Partners.AddAsync(new()
+                        {
+                            Active = false,
+                            Banner = x.Banner,
+                            DonorRank = x.DonorRank.HasValue ? x.DonorRank.Value - 1 : 0,
+                            GuildId = uid,
+                            Message = RestoreProofedMessage(x.Message),
+                            NSFW = Convert.ToBoolean(x.Nsfw ?? 0),
+                            ReceiveNSFW = Convert.ToBoolean(x.ReceiveNsfw ?? 0),
+                            OwnerId = (ulong)x.OwnerId,
+                            GuildName = string.IsNullOrWhiteSpace(x.GuildName) ? "n/a" : x.GuildName
+                        });
+                    }
+                    else
+                    {
+                        if (!item.Active)
+                        {
+                            item.Message = RestoreProofedMessage(x.Message);
+                            local.Update(item);
+                        }
+                    }
 
                     _ = Task.Run(() => logger.LogDebug($"Parsed Partner Data for {x.GuildName} : {x.GuildId}"));
                 });
@@ -95,42 +111,42 @@ namespace DBConverter
 
                 logger.LogInformation("\n\nSaved Partner Data\n\n");
 
-                added = new();
-                await remote.Guildbans.ForEachAsync(async (x) =>
-                {
-                    ulong id = (ulong)x.Id;
-                    if (!added.Add(id)) return;
+                //added = new();
+                //await remote.Guildbans.ForEachAsync(async (x) =>
+                //{
+                //    ulong id = (ulong)x.Id;
+                //    if (!added.Add(id)) return;
 
-                    await local.GuildBans.AddAsync(new()
-                    {
-                        BanTime = DateTime.Now,
-                        GuildId = id,
-                        Reason = x.Reason
-                    });
-                });
+                //    await local.GuildBans.AddAsync(new()
+                //    {
+                //        BanTime = DateTime.Now,
+                //        GuildId = id,
+                //        Reason = x.Reason
+                //    });
+                //});
 
-                await local.SaveChangesAsync();
+                //await local.SaveChangesAsync();
                 
-                logger.LogInformation("\n\nSaved Guild Bans Data\n\n");
+                //logger.LogInformation("\n\nSaved Guild Bans Data\n\n");
 
-                added = new();
-                await remote.Guildconfigs.ForEachAsync(async (x) =>
-                {
-                    ulong gid = (ulong)x.GuildId;
-                    if (!added.Add(gid)) return;
+                //added = new();
+                //await remote.Guildconfigs.ForEachAsync(async (x) =>
+                //{
+                //    ulong gid = (ulong)x.GuildId;
+                //    if (!added.Add(gid)) return;
 
-                    await local.GuildConfigurations.AddAsync(new()
-                    {
-                        GuildId = gid,
-                        Prefix = string.IsNullOrWhiteSpace(x.Prefix) ? "pb!" : x.Prefix
-                    });
+                //    await local.GuildConfigurations.AddAsync(new()
+                //    {
+                //        GuildId = gid,
+                //        Prefix = string.IsNullOrWhiteSpace(x.Prefix) ? "pb!" : x.Prefix
+                //    });
 
-                    _ = Task.Run(() => logger.LogDebug($"Parsed Guild Config for {x.GuildId}"));
-                });
+                //    _ = Task.Run(() => logger.LogDebug($"Parsed Guild Config for {x.GuildId}"));
+                //});
 
-                await local.SaveChangesAsync();
+                //await local.SaveChangesAsync();
 
-                logger.LogInformation("\n\nSaved Guild Config Information\n\n");
+                //logger.LogInformation("\n\nSaved Guild Config Information\n\n");
 
 
 
@@ -151,6 +167,49 @@ namespace DBConverter
 
             await database.Database.MigrateAsync();
             await database.SaveChangesAsync();
+        }
+
+        public static string RestoreProofedMessage(string msg)
+        {
+            if (msg is null)
+                return "";
+
+            bool byteConversion = true;
+
+            var byteStrings = msg.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            List<byte> bytes = new List<byte>();
+
+            foreach (string bString in byteStrings)
+            {
+                if (byte.TryParse(bString, out byte b))
+                {
+                    bytes.Add(b);
+                }
+                else
+                {
+                    byteConversion = false;
+                    break;
+                }
+            }
+
+            if (byteConversion)
+            {
+                var res = Encoding.UTF8.GetString(bytes.ToArray());
+                return res;
+            }
+            else
+            {
+                try
+                {
+                    var res = JsonConvert.DeserializeObject<string>(msg);
+                    return res;
+                }
+                catch
+                {
+                    return msg;
+                }
+            }
         }
     }
 }

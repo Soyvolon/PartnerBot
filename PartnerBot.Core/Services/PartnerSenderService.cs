@@ -92,18 +92,25 @@ namespace PartnerBot.Core.Services
 
                     _ = Task.Run(async () =>
                     {
-                        await _partners.UpdateOrAddPartnerAsync(data.GuildId, () => new()
-                        {
-                            Active = false
-                        });
-
                         if (ex is BadRequestException)
                         {
-                            await this._rest.ExecuteWebhookAsync(data.WebhookId, data.WebhookToken, new DiscordWebhookBuilder()
+                            await this._rest.ExecuteWebhookAsync(data.Match.WebhookId, data.Match.WebhookToken, new DiscordWebhookBuilder()
                                 .AddEmbed(new DiscordEmbedBuilder()
                                     .WithColor(DiscordColor.DarkRed)
                                     .WithDescription("Partner Bot has been disabled on your server because your Partner Message has exceeded 1900 characters," +
                                     " or your setup is otherwise invalid. Please use `pb!setup` and reconfigure Partner Bot.")));
+
+                            await _partners.UpdateOrAddPartnerAsync(data.Match.GuildId, () => new()
+                            {
+                                Active = false
+                            });
+                        }
+                        else
+                        {
+                            await _partners.UpdateOrAddPartnerAsync(data.GuildId, () => new()
+                            {
+                                Active = false
+                            });
                         }
                     });
 
