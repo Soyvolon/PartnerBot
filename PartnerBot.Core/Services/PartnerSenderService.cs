@@ -107,10 +107,7 @@ namespace PartnerBot.Core.Services
                         }
                         else
                         {
-                            await _partners.UpdateOrAddPartnerAsync(data.GuildId, () => new()
-                            {
-                                Active = false
-                            });
+                            _logger.LogWarning(ex, "Partner Sender Failed");
                         }
                     });
 
