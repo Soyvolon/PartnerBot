@@ -27,7 +27,7 @@ namespace PartnerBot.Core.Services
         private static readonly EventId _event = new EventId(12701, "GuildVerify");
 
         public ConcurrentBag<int> SlotsBag { get; private set; }
-        public ConcurrentDictionary<ulong, ulong>[] ChannelTree { get; init; }
+        public ConcurrentDictionary<(ulong, string), ulong>[] ChannelTree { get; init; }
         public ConcurrentDictionary<ulong, int> SlotTree { get; private set; }
         public Timer? VerificationTimer { get; private set; }
 
@@ -46,7 +46,7 @@ namespace PartnerBot.Core.Services
             this._donor = donor;
             this._logger = rest.Logger;
 
-            this.ChannelTree = new ConcurrentDictionary<ulong, ulong>[DOUBLE_SECONDS_PER_DAY];
+            this.ChannelTree = new ConcurrentDictionary<(ulong, string), ulong>[DOUBLE_SECONDS_PER_DAY];
             this.SlotsBag = new();
             this.SlotTree = new();
         }
@@ -82,7 +82,7 @@ namespace PartnerBot.Core.Services
                 if (this.SlotsBag.TryTake(out int slot))
                 {
                     _logger.LogDebug(_event, $"Added guild {res.GuildId} to slot {slot}");
-                    this.ChannelTree[slot][res.WebhookId] = res.GuildId;
+                    this.ChannelTree[slot][(res.WebhookId, res.WebhookToken)] = res.GuildId;
                     this.SlotTree[res.GuildId] = slot;
                 }
             }
@@ -113,7 +113,7 @@ namespace PartnerBot.Core.Services
             _logger.LogDebug(_event, $"Added guild {p.GuildId} to slot {slot}");
 
             this.SlotTree[p.GuildId] = slot;
-            this.ChannelTree[slot][p.WebhookId] = p.GuildId;
+            this.ChannelTree[slot][(p.WebhookId, p.WebhookToken)] = p.GuildId;
         }
 
         internal void RemovePartner(Partner p)
@@ -122,7 +122,7 @@ namespace PartnerBot.Core.Services
 
             if(this.SlotTree.TryRemove(p.GuildId, out int slot))
             {
-                _ = this.ChannelTree[slot].TryRemove(p.WebhookId, out _);
+                _ = this.ChannelTree[slot].TryRemove((p.WebhookId, p.WebhookToken), out _);
                 this.SlotsBag.Add(slot);
             }
         }
@@ -141,16 +141,16 @@ namespace PartnerBot.Core.Services
 
             _logger.LogTrace(_event, $"Starting verifcation for slot {this.CurrentSlot}");
 
-            ConcurrentDictionary<ulong, ulong>? ids = this.ChannelTree[this.CurrentSlot];
+            var ids = this.ChannelTree[this.CurrentSlot];
 
             _logger.LogTrace(_event, $"Found {ids.Count} IDs to verify.");
 
-            foreach (System.Collections.Generic.KeyValuePair<ulong, ulong> id in ids)
+            foreach (var id in ids)
             {
                 _logger.LogInformation(_event, $"Starting verification for guild {id.Value}");
                 try
                 {
-                    DiscordWebhook? hook = await this._rest.GetWebhookAsync(id.Key);
+                    DiscordWebhook? hook = await this._rest.GetWebhookWithTokenAsync(id.Key.Item1, id.Key.Item2);
                     DiscordChannel? channel = await this._rest.GetChannelAsync(hook.ChannelId);
 
                     if(!VerifyChannel(channel))
