@@ -6,6 +6,7 @@ using DSharpPlus;
 using DSharpPlus.CommandsNext;
 using DSharpPlus.CommandsNext.Attributes;
 using DSharpPlus.Entities;
+using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity.Extensions;
 
 using Microsoft.EntityFrameworkCore;
@@ -27,13 +28,32 @@ namespace PartnerBot.Discord.Commands.Core
         private readonly PartnerManagerService _partners;
         private readonly GuildBanService _ban;
         private readonly DiscordRestClient _rest;
-        private static readonly string BASE_MESSAGE = $"**Setup Options:**\n\n" +
-                        $"*Main Options:*\n" +
-                        $"`channel`, `message`, `toggle`, `save`\n\n" +
-                        $"*Optional Options:*\n" +
-                        $"`add-embed`, `edit-embed`, `remove-embed`, `banner`, `color`, `tags`, `vanity`\n\n" +
-                        $"*Server Settings:*\n" +
-                        $"`get-nsfw`, `set-nsfw`";
+        //private static readonly string BASE_MESSAGE = $"**Setup Options:**\n\n" +
+        //                $"*Main Options:*\n" +
+        //                $"`channel`, `message`, `toggle`, `save`\n\n" +
+        //                $"*Optional Options:*\n" +
+        //                $"`add-embed`, `edit-embed`, `remove-embed`, `banner`, `color`, `tags`, `vanity`\n\n" +
+        //                $"*Server Settings:*\n" +
+        //                $"`get-nsfw`, `set-nsfw`";
+
+        private enum InteractionAction
+        {
+            Exit, //
+            Save, //
+            Channel, //
+            Message, //
+            Toggle, //
+            AddEmbed, //
+            EditEmbed, //
+            RemoveEmbed, //
+            Banner, //
+            Color, //
+            Tags,
+            Vanity,
+            GetNSFW,
+            SetNSFW,
+            None
+        }
 
         public SetupCommand(IServiceProvider services, DonorService donor,
             PartnerManagerService partners, GuildBanService ban,
@@ -44,6 +64,88 @@ namespace PartnerBot.Discord.Commands.Core
             this._partners = partners;
             this._ban = ban;
             this._rest = rest;
+        }
+
+        private async Task<DiscordMessageBuilder> GetMessageBuilder(Partner partner, bool isChanged = true, DiscordChannel? channel = null)
+        {
+            var builder = new DiscordMessageBuilder()
+                .WithEmbed(await GetRequiermentsEmbed(partner, channel));
+
+            foreach (var item in await GetComponents(partner, isChanged))
+                builder.AddComponents(item);
+
+            return builder;
+        }
+
+        private async Task<DiscordInteractionResponseBuilder> GetInteractionResponseBuilder(Partner partner, bool isChanged = false, 
+            DiscordChannel? channel = null, string? errorMessage = null)
+        {
+            var builder = new DiscordInteractionResponseBuilder()
+                .AddEmbed(await GetRequiermentsEmbed(partner, channel));
+
+            foreach(var item in await GetComponents(partner, isChanged))
+                builder.AddComponents(item);
+
+            if (errorMessage is not null)
+                builder.AddEmbed(ErrorBase().WithDescription(errorMessage));
+
+            return builder;
+        }
+
+        private async Task<List<DiscordButtonComponent[]>> GetComponents(Partner partner, bool isChanged)
+        {
+            int maxEmbeds = partner.DonorRank == 2 ? DonorService.TRIPPLE_EMBEDS : partner.DonorRank >= 3 ? DonorService.QUADRUPLE_EMBEDS : 0;
+            bool canUseEmbeds = maxEmbeds <= 0;
+            bool embedsRemaining = partner.MessageEmbeds.Count < maxEmbeds;
+            bool embedAllowed = !(partner.DonorRank >= DonorService.EMBED_LIMIT && !(!embedsRemaining && partner.DonorRank == DonorService.EMBED_LIMIT));
+            bool usedVanity = partner.VanityInvite is not null;
+            DiscordInvite? vanity;
+            try
+            {
+                vanity = await this.Context.Guild.GetVanityInviteAsync();
+            }
+            catch { vanity = null; }
+
+            bool hasVanity = vanity is not null;
+            bool canUseVanity = partner.DonorRank >= 1;
+
+            var one = new DiscordButtonComponent[]
+            {
+                new(ButtonStyle.Primary, "channel", "Set Channel"),
+                new(ButtonStyle.Primary, "message", "Set Message"),
+                new(ButtonStyle.Secondary, "banner", "Set Banner"),
+                new(ButtonStyle.Secondary, "color", "Set Color"),
+                new(partner.Active ? ButtonStyle.Danger : ButtonStyle.Success, "toggle", partner.Active ? "Disable Partner Bot" : "Enable Partner Bot")
+            };
+
+            var two = new DiscordButtonComponent[]
+            {
+                new(ButtonStyle.Primary, "tags", "Edit Tags"),
+                new(usedVanity ? ButtonStyle.Secondary : ButtonStyle.Primary, "vanity", usedVanity ? "Disable Vanity URL" : "Enable Vanity URL", !(canUseVanity && hasVanity)),
+                new(partner.ReceiveNSFW ? ButtonStyle.Secondary : ButtonStyle.Primary, "get-nsfw", partner.ReceiveNSFW ? "Don't Receive NSFW" : "Receive NSFW"),
+                new(partner.NSFW ? ButtonStyle.Secondary : ButtonStyle.Primary, "set-nsfw", partner.NSFW ? "Diable NSFW Flag" : "Set NSFW Flag"),
+            };
+
+            var three = new DiscordButtonComponent[]
+            {
+                new(ButtonStyle.Primary, "add-embed", "Add Embed", embedAllowed && canUseEmbeds),
+                new(ButtonStyle.Secondary, "edit-embed", "Edit Embed", canUseEmbeds),
+                new(ButtonStyle.Danger, "remove-embed", "Remove Embed", canUseEmbeds),
+            };
+
+            var four = new DiscordButtonComponent[]
+            {
+                new(ButtonStyle.Success, "save", "Save Changes", !isChanged),
+                new(ButtonStyle.Danger, "exit", "Exit Without Saving")
+            };
+
+            return new List<DiscordButtonComponent[]>()
+            {
+                one,
+                two,
+                three,
+                four
+            };
         }
 
         [Command("setup")]
@@ -116,44 +218,46 @@ namespace PartnerBot.Discord.Commands.Core
                 }
             }
 
-            var statusEmbed = new DiscordEmbedBuilder(this.SetupBase);
             DSharpPlus.Interactivity.InteractivityExtension? interact = ctx.Client.GetInteractivity();
             bool done = false;
-            bool errored = false;
+            bool isChanged = false;
+            string? errorMessage = null;
             DiscordMessage? requirementsMessage = null;
-            DiscordMessage? statusMessage = null;
             HashSet<string>? tagUpdate = null;
+            ComponentInteractionCreateEventArgs? lastButtonEvent = null;
             do
             {
-                DiscordEmbedBuilder? requirementsEmbed = await GetRequiermentsEmbed(partner, channel);
-
-                if (requirementsMessage is null)
-                    requirementsMessage = await ctx.RespondAsync(requirementsEmbed);
-                else await requirementsMessage.ModifyAsync(requirementsEmbed.Build());
-
-                if (!errored)
+                if (lastButtonEvent is null)
                 {
-                    statusEmbed.WithDescription(BASE_MESSAGE)
-                        .WithColor(Color_PartnerBotMagenta);
+                    var messageBuilder = await GetMessageBuilder(partner, isChanged, channel);
+                    try
+                    {
+                        if (requirementsMessage is null)
+                            requirementsMessage = await messageBuilder.SendAsync(ctx.Channel);
+                        else await requirementsMessage.ModifyAsync(messageBuilder);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine(ex);
+                    }
+                }
+                else
+                {
+                    await lastButtonEvent.Interaction.CreateResponseAsync(
+                        InteractionResponseType.UpdateMessage,
+                        await GetInteractionResponseBuilder(partner, isChanged, channel, errorMessage)
+                    );
+
+                    requirementsMessage = lastButtonEvent.Message;
                 }
 
-                errored = false;
-
-                if (statusMessage is null)
-                    statusMessage = await ctx.RespondAsync(statusEmbed);
-                else await statusMessage.ModifyAsync(statusEmbed.Build());
-
-                (DSharpPlus.Interactivity.InteractivityResult<DiscordMessage>, bool) response = await GetFollowupMessageAsync(interact);
+                var response = await GetButtonPressAsync(interact, requirementsMessage);
 
                 if (!response.Item2) return;
 
-                DSharpPlus.Interactivity.InteractivityResult<DiscordMessage> res = response.Item1;
+                lastButtonEvent = response.Item1;
 
-                string? msg = res.Result.Content;
-
-                string? trimed = msg.ToLower().Trim();
-
-                switch (trimed)
+                switch (lastButtonEvent.Id)
                 {
                     // Exit calls.
                     case "exit":
@@ -166,7 +270,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                     // Primary Settings.
                     case "channel":
-                        ((DiscordChannel, DiscordWebhook, string)?, string?, bool) chanRes = await GetNewPartnerChannelAsync(partner, statusMessage, statusEmbed);
+                        ((DiscordChannel, DiscordWebhook, string)?, string?, bool) chanRes = await GetNewPartnerChannelAsync(partner, lastButtonEvent);
                         if (chanRes.Item3) return;
 
                         if (chanRes.Item1 is null)
@@ -182,7 +286,7 @@ namespace PartnerBot.Discord.Commands.Core
                         break;
 
                     case "message":
-                        (string?, string?, bool) messageRes = await GetNewMessage(partner, statusMessage, statusEmbed, partner.Message.GetUrls().Count);
+                        (string?, string?, bool) messageRes = await GetNewMessage(partner, lastButtonEvent, partner.Message.GetUrls().Count);
                         if (messageRes.Item3) return;
 
                         if (messageRes.Item1 is null)
@@ -202,13 +306,8 @@ namespace PartnerBot.Discord.Commands.Core
                             partner.Active = true;
                         else
                         {
-                            statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**Core setup is not complete. Please complete the required settings before toggling Partner Bot**\n\n" +
-                                $"**Setup Erroed because:** `{setup.Item2}`")
-                                .WithColor(DiscordColor.DarkRed);
-
-                            errored = true;
+                            errorMessage = $"**Core setup is not complete. Please complete the required settings before toggling Partner Bot**\n\n" +
+                                $"**Setup Erroed because:** `{setup.Item2}`";
                         }
                         break;
 
@@ -216,31 +315,24 @@ namespace PartnerBot.Discord.Commands.Core
                     case "add-embed":
                         if (partner.DonorRank < DonorService.EMBED_LIMIT)
                         {
-                            statusEmbed.WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**You need to be a Tripple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**")
-                                .WithColor(DiscordColor.DarkRed);
-
-                            errored = true;
+                            errorMessage = $"**You need to be a Tripple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**";
                         }
                         else if (partner.DonorRank >= DonorService.HIGHEST_RANK 
                             ? partner.MessageEmbeds.Count >= DonorService.QUADRUPLE_EMBEDS 
                             : partner.MessageEmbeds.Count >= DonorService.TRIPPLE_EMBEDS)
                         {
-                            statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**You have used up all your embeds! You can edit a existing one, or remove an old one and add a new one.**")
-                                .WithColor(DiscordColor.DarkRed);
-
-                            errored = true;
+                            errorMessage = $"**You have used up all your embeds! You can edit a existing one, or remove an old one and add a new one.**";
                         }
                         else
                         {
-                            statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**Please enter the title for your new embed:**")
+                            var statusEmbed = new DiscordEmbedBuilder()
+                                .WithDescription($"**Please enter the title for your new embed:**")
                                 .WithColor(Color_PartnerBotMagenta);
 
-                            await statusMessage.ModifyAsync(statusEmbed.Build());
+                            var builder = new DiscordMessageBuilder()
+                                .WithEmbed(statusEmbed);
+
+                            var statusMessage = await builder.SendAsync(lastButtonEvent.Channel);
 
                             (DSharpPlus.Interactivity.InteractivityResult<DiscordMessage>, bool) editStart = await GetFollowupMessageAsync(interact);
 
@@ -252,16 +344,11 @@ namespace PartnerBot.Discord.Commands.Core
 
                             if (title.Length > 256)
                             {
-                                statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                    .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                    $"**The embed title cannot be longer than 256 characters. Returning to main menu.**")
-                                    .WithColor(DiscordColor.DarkRed);
-
-                                errored = true;
+                                errorMessage = $"**The embed title cannot be longer than 256 characters. Returning to main menu.**";
                             }
                             else
                             {
-                                (DiscordEmbedBuilder?, string?, bool) addEnd = await GetCustomDiscordEmbedAsync(partner, statusMessage, statusEmbed, title);
+                                (DiscordEmbedBuilder?, string?, bool) addEnd = await GetCustomDiscordEmbedAsync(partner, lastButtonEvent, title);
 
                                 if (addEnd.Item3) return;
 
@@ -273,75 +360,63 @@ namespace PartnerBot.Discord.Commands.Core
 
                                 partner.MessageEmbeds.Add(addEnd.Item1);
                             }
+
+                            await statusMessage.DeleteAsync();
                         }
                         break;
 
                     case "edit-embed":
                         if (partner.DonorRank < DonorService.EMBED_LIMIT)
                         {
-                            statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**You need to be a Tripple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**")
-                                .WithColor(DiscordColor.DarkRed);
-
-                            errored = true;
+                            errorMessage = $"**You need to be a Tripple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**";
                         }
                         else if (partner.MessageEmbeds.Count <= 0)
                         {
-                            statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**There are no embeds to edit!**")
-                                .WithColor(DiscordColor.DarkRed);
-
-                            errored = true;
+                            errorMessage = $"**There are no embeds to edit!**";
                         }
                         else
                         {
-                            List<string> dat = new();
-                            int i = 0;
-                            foreach (DiscordEmbed? e in partner.MessageEmbeds)
-                                dat.Add($"[{i++}] {e.Title}");
+                            string desc = $"Please select an embed to edit:\n\n";
+                            List<string> items = new();
+                            int c = 1;
+                            var buttons = new List<DiscordButtonComponent>();
+                            foreach (DiscordEmbed f in partner.MessageEmbeds)
+                            {
+                                items.Add($"`{c++}` - {f.Title}");
+                                buttons.Add(new(ButtonStyle.Primary, c.ToString(), c.ToString()));
+                            }
 
-                            statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**Please enter the index of the embed you would like to edit:**\n" +
-                                $"*[index] title*\n\n" +
-                                $"{string.Join("\n", dat)}")
-                                .WithColor(Color_PartnerBotMagenta);
+                            var statusEmbed = new DiscordEmbedBuilder()
+                                .WithDescription($"{desc}{string.Join("\n", items)}")
+                                .WithColor(DiscordColor.Gold);
 
-                            await statusMessage.ModifyAsync(statusEmbed.Build());
+                            var builder = new DiscordMessageBuilder()
+                                .WithEmbed(statusEmbed)
+                                .AddComponents(buttons);
 
-                            (DSharpPlus.Interactivity.InteractivityResult<DiscordMessage>, bool) addStart = await GetFollowupMessageAsync(interact);
+                            var statusMessage = await builder.SendAsync(lastButtonEvent.Channel);
+
+                            var addStart = await GetButtonPressAsync(interact, statusMessage);
 
                             if (!addStart.Item2) return;
 
-                            DSharpPlus.Interactivity.InteractivityResult<DiscordMessage> startRes = addStart.Item1;
+                            var startRes = addStart.Item1;
 
-                            string? indexRaw = startRes.Result.Content.Trim();
-
-                            if (!int.TryParse(indexRaw, out int index))
+                            if (!int.TryParse(startRes.Id, out int index))
                             {
-                                statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                    .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                    $"**The value provided was not a number! Returning to main menu.**")
-                                    .WithColor(DiscordColor.DarkRed);
-
-                                errored = true;
+                                errorMessage = $"**The value provided was not a number! Returning to main menu.**";
+                                await startRes.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
                             }
                             else if (index > partner.MessageEmbeds.Count || index < 0)
                             {
-                                statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                    .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                    $"**The value provided was not a valid embed! Returning to main menu.**")
-                                    .WithColor(DiscordColor.DarkRed);
-
-                                errored = true;
+                                errorMessage = $"**The value provided was not a valid embed! Returning to main menu.**";
+                                await startRes.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
                             }
                             else
                             {
                                 DiscordEmbed? oldEmbed = partner.MessageEmbeds[index];
 
-                                (DiscordEmbedBuilder?, string?, bool) editEnd = await GetCustomDiscordEmbedAsync(partner, statusMessage, statusEmbed, oldEmbed.Title, new(oldEmbed));
+                                (DiscordEmbedBuilder?, string?, bool) editEnd = await GetCustomDiscordEmbedAsync(partner, lastButtonEvent, oldEmbed.Title, new(oldEmbed));
 
                                 if (editEnd.Item3) return;
 
@@ -353,83 +428,77 @@ namespace PartnerBot.Discord.Commands.Core
 
                                 partner.MessageEmbeds[index] = editEnd.Item1;
                             }
+
+                            await statusMessage.DeleteAsync();
                         }
                         break;
 
                     case "remove-embed":
                         if (partner.DonorRank < DonorService.EMBED_LIMIT)
                         {
-                            statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**You need to be a Tripple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**")
-                                .WithColor(DiscordColor.DarkRed);
-
-                            errored = true;
+                            errorMessage = $"**You need to be a Tripple Partner to use custom embeds! Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true) to get access to embeds.**";
                         }
                         else if (partner.MessageEmbeds.Count <= 0)
                         {
-                            statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**There are no embeds to remove!**")
-                                .WithColor(DiscordColor.DarkRed);
-
-                            errored = true;
+                            errorMessage = $"**There are no embeds to remove!**";
                         }
                         else
                         {
-                            List<string> dat = new();
-                            int i = 0;
-                            foreach (DiscordEmbed? e in partner.MessageEmbeds)
-                                dat.Add($"[{i++}] {e.Title}");
+                            string desc = $"Please select an embed to delete:\n\n";
+                            List<string> items = new();
+                            int c = 1;
+                            var buttons = new List<DiscordButtonComponent>();
+                            foreach (DiscordEmbed f in partner.MessageEmbeds)
+                            {
+                                items.Add($"`{c++}` - {f.Title}");
+                                buttons.Add(new(ButtonStyle.Primary, c.ToString(), c.ToString()));
+                            }
 
-                            statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                $"**Please enter the index of the embed you would like to remove:**\n" +
-                                $"*[index] title*\n\n" +
-                                $"{string.Join("\n", dat)}")
-                                .WithColor(Color_PartnerBotMagenta);
+                            var statusEmbed = new DiscordEmbedBuilder()
+                                .WithDescription($"{desc}{string.Join("\n", items)}")
+                                .WithColor(DiscordColor.Gold);
 
-                            await statusMessage.ModifyAsync(statusEmbed.Build());
+                            var builder = new DiscordMessageBuilder()
+                                .WithEmbed(statusEmbed)
+                                .AddComponents(buttons);
 
-                            (DSharpPlus.Interactivity.InteractivityResult<DiscordMessage>, bool) addStart = await GetFollowupMessageAsync(interact);
+                            var statusMessage = await builder.SendAsync(lastButtonEvent.Channel);
+
+                            var addStart = await GetButtonPressAsync(interact, statusMessage);
 
                             if (!addStart.Item2) return;
 
-                            DSharpPlus.Interactivity.InteractivityResult<DiscordMessage> startRes = addStart.Item1;
+                            var startRes = addStart.Item1;
 
-                            string? indexRaw = startRes.Result.Content.Trim();
-
-                            if (!int.TryParse(indexRaw, out int index))
+                            if (!int.TryParse(startRes.Id, out int index))
                             {
-                                statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                    .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                    $"**The value provided was not a number! Returning to main menu.**")
-                                    .WithColor(DiscordColor.DarkRed);
-
-                                errored = true;
+                                errorMessage = $"**The value provided was not a number! Returning to main menu.**";
+                                await startRes.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
                             }
                             else if (index > partner.MessageEmbeds.Count || index < 0)
                             {
-                                statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                    .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                    $"**The value provided was not a valid embed! Returning to main menu.**")
-                                    .WithColor(DiscordColor.DarkRed);
-
-                                errored = true;
+                                errorMessage = $"**The value provided was not a valid embed! Returning to main menu.**";
+                                await startRes.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
                             }
                             else
                             {
+                                await startRes.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
+                                    new DiscordInteractionResponseBuilder()
+                                        .AddEmbed(statusEmbed
+                                            .WithTitle("Partner Bot Setup - Main")
+                                            .WithDescription($"**Embed removed.**")));
+
                                 partner.MessageEmbeds.RemoveAt(index);
 
-                                statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                    .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                    $"**Embed removed.**");
+                                await Task.Delay(TimeSpan.FromSeconds(2));
                             }
+
+                            await statusMessage.DeleteAsync();
                         }
                         break;
 
                     case "banner":
-                        (Uri?, string?, bool) bannerRes = await GetNewPartnerBanner(statusMessage, statusEmbed);
+                        (Uri?, string?, bool) bannerRes = await GetNewPartnerBanner(lastButtonEvent);
                         if (bannerRes.Item3) return;
 
                         if (bannerRes.Item1 is null)
@@ -443,7 +512,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                     case "color":
                     case "colour":
-                        (DiscordColor?, string?, bool) colorRes = await GetCustomEmbedColorAsync(partner, statusMessage, statusEmbed);
+                        (DiscordColor?, string?, bool) colorRes = await GetCustomEmbedColorAsync(partner, lastButtonEvent);
                         if (colorRes.Item3) return;
 
                         if (colorRes.Item1 is null)
@@ -457,7 +526,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                     case "tag":
                     case "tags":
-                        (HashSet<string>?, string?, bool) tagRes = await UpdateTagsAsync(partner, statusMessage, statusEmbed);
+                        (HashSet<string>?, string?, bool) tagRes = await UpdateTagsAsync(partner, lastButtonEvent);
                         if (tagRes.Item3) return;
 
                         if (tagRes.Item1 is null)
@@ -474,14 +543,12 @@ namespace PartnerBot.Discord.Commands.Core
                         {
                             if (partner.VanityInvite is not null)
                             {
-                                partner.VanityInvite = null;
+                                await lastButtonEvent.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
+                                    new DiscordInteractionResponseBuilder()
+                                    .AddEmbed(new DiscordEmbedBuilder()
+                                        .WithDescription($"**Vanity Invite disabled!**")));
 
-                                statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                            .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                            $"**Vanity Invite disabled!**")
-                                            .WithColor(Color_PartnerBotMagenta);
-
-                                errored = true;
+                                await Task.Delay(TimeSpan.FromSeconds(2));
                             }
                             else
                             {
@@ -494,36 +561,24 @@ namespace PartnerBot.Discord.Commands.Core
 
                                 if (vanity is not null)
                                 {
-                                    partner.VanityInvite = vanity.Code;
+                                    await lastButtonEvent.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
+                                    new DiscordInteractionResponseBuilder()
+                                    .AddEmbed(new DiscordEmbedBuilder()
+                                        .WithDescription($"**Vanity Invite enabled!**")));
 
-                                    statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                            .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                            $"**Vanity Invite enabled!**")
-                                            .WithColor(Color_PartnerBotMagenta);
-
-                                    errored = true;
+                                    await Task.Delay(TimeSpan.FromSeconds(2));
                                 }
                                 else
                                 {
-                                    statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                            .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                            $"**You do not have a vanity invite for your server!**")
-                                            .WithColor(DiscordColor.DarkRed);
-
-                                    errored = true;
+                                    errorMessage = $"**You do not have a vanity invite for your server!**";
                                 }
                             }
                         }
                         else
                         {
-                            statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                        .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                        $"**You do not have a high enough donor rank to use vanity invites." +
-                                        $" Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true)" +
-                                        $" to use your vanity invite!**")
-                                        .WithColor(DiscordColor.DarkRed);
-
-                            errored = true;
+                            errorMessage = $"**You do not have a high enough donor rank to use vanity invites." +
+                                $" Consider [donating](https://www.patreon.com/cessumdevelopment?fan_landing=true)" +
+                                $" to use your vanity invite!**";
                         }
                         break;
                     case "get-nsfw":
@@ -531,14 +586,9 @@ namespace PartnerBot.Discord.Commands.Core
                             partner.ReceiveNSFW = !partner.ReceiveNSFW;
                         else
                         {
-                            statusEmbed.WithTitle("Partner Bot Setup - Main")
-                                        .WithDescription($"{BASE_MESSAGE}\n\n" +
-                                        $"**If your server is marked NSFW you must be allwoed to receive other NSFW server advertisments." +
-                                        $" Make your advertisment *not* NSFW, then use `set-nsfw` again before turning this option off with" +
-                                        $" `get-nsfw`.**")
-                                        .WithColor(DiscordColor.DarkRed);
-
-                            errored = true;
+                            errorMessage = $"**If your server is marked NSFW you must be allwoed to receive other NSFW server advertisments." +
+                                $" Make your advertisment *not* NSFW, then use `set-nsfw` again before turning this option off with" +
+                                $" `get-nsfw`.**";
                         }
                         break;
                     case "set-nsfw":
@@ -569,20 +619,25 @@ namespace PartnerBot.Discord.Commands.Core
 
             if (updateRes.Item1 is not null)
             {
-                statusEmbed.WithTitle("Partner Bot Setup - Main")
-                    .WithDescription("Partner Setup Saved!")
-                    .WithColor(DiscordColor.DarkGreen);
+                await lastButtonEvent.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
+                    new DiscordInteractionResponseBuilder()
+                        .AddEmbed(new DiscordEmbedBuilder()
+                            .WithTitle("Partner Bot Setup - Main")
+                            .WithColor(DiscordColor.Green)
+                            .WithDescription("Partner Setup Saved!")));
             }
             else
             {
-                statusEmbed.WithTitle("Partner Bot Setup - Main")
-                    .WithDescription("An error occurred while saving:\n\n```\n" +
-                    $"{updateRes.Item2}" +
-                    $"\n```")
-                    .WithColor(DiscordColor.DarkRed);
+                await lastButtonEvent.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
+                    new DiscordInteractionResponseBuilder()
+                        .AddEmbed(new DiscordEmbedBuilder()
+                            .WithTitle("Partner Bot Setup - Main")
+                            .WithDescription("An error occurred while saving:\n\n```\n" +
+                            $"{updateRes.Item2}" +
+                            $"\n```")
+                            .WithColor(DiscordColor.DarkRed)));
+                ;
             }
-
-            await statusMessage.ModifyAsync(statusEmbed.Build());
         }
 
         public async Task<DiscordEmbedBuilder> GetRequiermentsEmbed(Partner partner, DiscordChannel? channel = null)
