@@ -22,15 +22,13 @@ namespace PartnerBot.Discord.Commands.Core
         // Items with three outputs (object, string?, bool) follow: (output, error message, fatal error). Commands should immedietly stop running if a
         // fatal error is returned.
 
-        // TODO: Set channel fix has no buttons
-        // TODO: Set messave needs save and exit buttons
+        // TODO: Set message needs save and exit buttons
         // TODO: Set banner needs a save/back buttons and the banner details embed needs
         // to be delted.
         // TODO: Tag interactions need to remove buttons when running and respond
-        // so the interaction does not fail
+        // so the interaction does not fail.
         // TODO: Tags need to be displayed in the add and inital messages
-        // TODO: Embed field adding needs buttons
-        // TODO: Embed filed and embed selection integer values are one too high
+        // TODO: Embed field adding needs buttons.
 
         protected DiscordEmbed SetupBase { get; set; } = new DiscordEmbedBuilder()
         {
@@ -159,7 +157,7 @@ namespace PartnerBot.Discord.Commands.Core
                                 $" Otherwise, type `no` to return to channel selection.**\n\n\n" +
                                 $"{string.Join("\n\n", data)}";
 
-                            await statusMessage.ModifyAsync(new DiscordMessageBuilder()
+                            statusMessage = await statusMessage.ModifyAsync(new DiscordMessageBuilder()
                                 .WithEmbed(statusEmbed
                                     .WithDescription(desc)
                                     .WithColor(DiscordColor.Red))
@@ -191,23 +189,23 @@ namespace PartnerBot.Discord.Commands.Core
                                 }
                                 else
                                 {
-                                    await statusMessage.ModifyAsync(statusEmbed
+                                    await btnRes.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
+                                        new DiscordInteractionResponseBuilder().AddEmbed(statusEmbed
                                         .WithDescription($"Partner Bot was unable to automatically setup the channel:\n" +
                                         $"{fix.Item2}\n\n" +
                                         $"Please fix the channel manually or select a new channel. Mention a channel to continue.")
-                                        .WithColor(DiscordColor.DarkRed)
-                                        .Build());
+                                        .WithColor(DiscordColor.DarkRed)));
                                 }
                             }
                             else
                             {
-                                await statusMessage.ModifyAsync(statusEmbed
+                                await btnRes.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
+                                    new DiscordInteractionResponseBuilder().AddEmbed(statusEmbed
                                     .WithDescription("Please select a channel that you would like to receive partner messages in. This channel will" +
                                     " receive any messages from other servers when your advertisement is sent out.\n\n" +
                                     "The channel requires all overwrites in that channel have the following two permissions:" +
                                     " `View Channel` and `Read Message History`")
-                                    .WithColor(color)
-                                    .Build());
+                                    .WithColor(color)));
                             }
                         }
                     }
@@ -846,8 +844,9 @@ namespace PartnerBot.Discord.Commands.Core
             var buttons = new List<DiscordButtonComponent>();
             foreach (DiscordEmbedField? f in displayEmbed.Fields)
             {
-                items.Add($"`{c++}` - {f.Name}");
+                items.Add($"`{c}` - {f.Name}");
                 buttons.Add(new(ButtonStyle.Primary, c.ToString(), c.ToString()));
+                c++;
             }
 
             var statusEmbed = new DiscordEmbedBuilder()
@@ -906,11 +905,11 @@ namespace PartnerBot.Discord.Commands.Core
 
                 var editButtons = new DiscordComponent[]
                 {
-                new DiscordButtonComponent(ButtonStyle.Primary, "title", "Title"),
-                new DiscordButtonComponent(ButtonStyle.Secondary, "message", "Message"),
-                new DiscordButtonComponent(ButtonStyle.Primary, "toggle-inline", "Toggle Inline"),
-                new DiscordButtonComponent(ButtonStyle.Success, "save", "Save Changes"),
-                new DiscordButtonComponent(ButtonStyle.Danger, "exit", "Exit Without Saving")
+                    new DiscordButtonComponent(ButtonStyle.Primary, "title", "Title"),
+                    new DiscordButtonComponent(ButtonStyle.Secondary, "message", "Message"),
+                    new DiscordButtonComponent(ButtonStyle.Primary, "toggle-inline", "Toggle Inline"),
+                    new DiscordButtonComponent(ButtonStyle.Success, "save", "Save Changes"),
+                    new DiscordButtonComponent(ButtonStyle.Danger, "exit", "Exit Without Saving")
                 };
 
                 await res.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
@@ -1010,8 +1009,9 @@ namespace PartnerBot.Discord.Commands.Core
             var buttons = new List<DiscordButtonComponent>();
             foreach (DiscordEmbedField? f in displayEmbed.Fields)
             {
-                items.Add($"`{c++}` - {f.Name}");
+                items.Add($"`{c}` - {f.Name}");
                 buttons.Add(new(ButtonStyle.Primary, c.ToString(), c.ToString()));
+                c++;
             }
 
             var statusEmbed = new DiscordEmbedBuilder()

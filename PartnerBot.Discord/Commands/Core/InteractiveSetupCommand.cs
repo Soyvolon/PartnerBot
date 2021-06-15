@@ -77,7 +77,7 @@ namespace PartnerBot.Discord.Commands.Core
             return builder;
         }
 
-        private async Task<DiscordWebhookBuilder> GetInteractionEdit(Partner partner, bool isChanged = false, 
+        private async Task<DiscordWebhookBuilder> GetInteractionEditAsync(Partner partner, bool isChanged = false, 
             DiscordChannel? channel = null, string? errorMessage = null)
         {
             var builder = new DiscordWebhookBuilder()
@@ -92,7 +92,22 @@ namespace PartnerBot.Discord.Commands.Core
             return builder;
         }
 
-        private async Task<List<DiscordButtonComponent[]>> GetComponents(Partner partner, bool isChanged)
+        private async Task<DiscordInteractionResponseBuilder> GetInteractionResponseAsync(Partner partner, bool isChanged = false,
+            DiscordChannel? channel = null, string? errorMessage = null)
+        {
+            var builder = new DiscordInteractionResponseBuilder()
+                .AddEmbed(await GetRequiermentsEmbed(partner, channel));
+
+            foreach (var item in await GetComponents(partner, isChanged, true))
+                builder.AddComponents(item);
+
+            if (errorMessage is not null)
+                builder.AddEmbed(ErrorBase().WithDescription(errorMessage));
+
+            return builder;
+        }
+
+        private async Task<List<DiscordButtonComponent[]>> GetComponents(Partner partner, bool isChanged, bool disableAll = false)
         {
             int maxEmbeds = partner.DonorRank == 2 ? DonorService.TRIPPLE_EMBEDS : partner.DonorRank >= 3 ? DonorService.QUADRUPLE_EMBEDS : 0;
             bool canUseEmbeds = maxEmbeds <= 0;
@@ -111,32 +126,32 @@ namespace PartnerBot.Discord.Commands.Core
 
             var one = new DiscordButtonComponent[]
             {
-                new(ButtonStyle.Primary, "channel", "Set Channel"),
-                new(ButtonStyle.Primary, "message", "Set Message"),
-                new(ButtonStyle.Secondary, "banner", "Set Banner"),
-                new(ButtonStyle.Secondary, "color", "Set Color"),
-                new(partner.Active ? ButtonStyle.Danger : ButtonStyle.Success, "toggle", partner.Active ? "Disable Partner Bot" : "Enable Partner Bot")
+                new(ButtonStyle.Primary, "channel", "Set Channel", disableAll),
+                new(ButtonStyle.Primary, "message", "Set Message", disableAll),
+                new(ButtonStyle.Secondary, "banner", "Set Banner", disableAll),
+                new(ButtonStyle.Secondary, "color", "Set Color", disableAll),
+                new(partner.Active ? ButtonStyle.Danger : ButtonStyle.Success, "toggle", partner.Active ? "Disable Partner Bot" : "Enable Partner Bot", disableAll)
             };
 
             var two = new DiscordButtonComponent[]
             {
-                new(ButtonStyle.Primary, "tags", "Edit Tags"),
-                new(usedVanity ? ButtonStyle.Secondary : ButtonStyle.Primary, "vanity", usedVanity ? "Disable Vanity URL" : "Enable Vanity URL", !(canUseVanity && hasVanity)),
-                new(partner.ReceiveNSFW ? ButtonStyle.Secondary : ButtonStyle.Primary, "get-nsfw", partner.ReceiveNSFW ? "Don't Receive NSFW" : "Receive NSFW"),
-                new(partner.NSFW ? ButtonStyle.Secondary : ButtonStyle.Primary, "set-nsfw", partner.NSFW ? "Diable NSFW Flag" : "Set NSFW Flag"),
+                new(ButtonStyle.Primary, "tags", "Edit Tags", disableAll),
+                new(usedVanity ? ButtonStyle.Secondary : ButtonStyle.Primary, "vanity", usedVanity ? "Disable Vanity URL" : "Enable Vanity URL", !(canUseVanity && hasVanity) || disableAll),
+                new(partner.ReceiveNSFW ? ButtonStyle.Secondary : ButtonStyle.Primary, "get-nsfw", partner.ReceiveNSFW ? "Don't Receive NSFW" : "Receive NSFW", disableAll),
+                new(partner.NSFW ? ButtonStyle.Secondary : ButtonStyle.Primary, "set-nsfw", partner.NSFW ? "Diable NSFW Flag" : "Set NSFW Flag", disableAll),
             };
 
             var three = new DiscordButtonComponent[]
             {
-                new(ButtonStyle.Primary, "add-embed", "Add Embed", embedAllowed && canUseEmbeds),
-                new(ButtonStyle.Secondary, "edit-embed", "Edit Embed", canUseEmbeds),
-                new(ButtonStyle.Danger, "remove-embed", "Remove Embed", canUseEmbeds),
+                new(ButtonStyle.Primary, "add-embed", "Add Embed", (embedAllowed && canUseEmbeds) || disableAll),
+                new(ButtonStyle.Secondary, "edit-embed", "Edit Embed", canUseEmbeds || disableAll),
+                new(ButtonStyle.Danger, "remove-embed", "Remove Embed", canUseEmbeds || disableAll),
             };
 
             var four = new DiscordButtonComponent[]
             {
-                new(ButtonStyle.Success, "save", "Save Changes", !isChanged),
-                new(ButtonStyle.Danger, "exit", "Exit Without Saving")
+                new(ButtonStyle.Success, "save", "Save Changes", !isChanged || disableAll),
+                new(ButtonStyle.Danger, "exit", "Exit Without Saving", disableAll)
             };
 
             return new List<DiscordButtonComponent[]>()
@@ -148,8 +163,6 @@ namespace PartnerBot.Discord.Commands.Core
             };
         }
 
-        // TODO: Disable main menu buttons when a sub menu is opened.
-        // TODO: Embed filed and embed selection integer values are one too high
         // TODO: Handle submenu exits and return to main edit window instead of leaving the edeitor
         // completely.
 
@@ -243,7 +256,7 @@ namespace PartnerBot.Discord.Commands.Core
                 else
                 {
                     await lastButtonEvent.Interaction.EditOriginalResponseAsync(
-                        await GetInteractionEdit(partner, isChanged, channel, errorMessage)
+                        await GetInteractionEditAsync(partner, isChanged, channel, errorMessage)
                     );
 
                     requirementsMessage = lastButtonEvent.Message;
@@ -254,7 +267,10 @@ namespace PartnerBot.Discord.Commands.Core
                 if (!response.Item2) return;
 
                 lastButtonEvent = response.Item1;
-                await lastButtonEvent.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+                await lastButtonEvent.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
+                    await GetInteractionResponseAsync(partner, isChanged, channel, errorMessage));
+
+                errorMessage = null;
 
                 switch (lastButtonEvent.Id)
                 {
@@ -381,8 +397,9 @@ namespace PartnerBot.Discord.Commands.Core
                             var buttons = new List<DiscordButtonComponent>();
                             foreach (DiscordEmbed f in partner.MessageEmbeds)
                             {
-                                items.Add($"`{c++}` - {f.Title}");
+                                items.Add($"`{c}` - {f.Title}");
                                 buttons.Add(new(ButtonStyle.Primary, c.ToString(), c.ToString()));
+                                c++;
                             }
 
                             var statusEmbed = new DiscordEmbedBuilder()
@@ -400,20 +417,19 @@ namespace PartnerBot.Discord.Commands.Core
                             if (!addStart.Item2) return;
 
                             var startRes = addStart.Item1;
+                            await startRes.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
 
                             if (!int.TryParse(startRes.Id, out int index))
                             {
                                 errorMessage = $"**The value provided was not a number! Returning to main menu.**";
-                                await startRes.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
                             }
                             else if (index > partner.MessageEmbeds.Count || index < 0)
                             {
                                 errorMessage = $"**The value provided was not a valid embed! Returning to main menu.**";
-                                await startRes.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
                             }
                             else
                             {
-                                DiscordEmbed? oldEmbed = partner.MessageEmbeds[index];
+                                DiscordEmbed? oldEmbed = partner.MessageEmbeds[index - 1];
 
                                 (DiscordEmbedBuilder?, string?, bool) editEnd = await GetCustomDiscordEmbedAsync(partner, lastButtonEvent, oldEmbed.Title, new(oldEmbed));
 
@@ -425,7 +441,7 @@ namespace PartnerBot.Discord.Commands.Core
                                     return;
                                 }
 
-                                partner.MessageEmbeds[index] = editEnd.Item1;
+                                partner.MessageEmbeds[index - 1] = editEnd.Item1;
                             }
 
                             await statusMessage.DeleteAsync();
@@ -449,8 +465,9 @@ namespace PartnerBot.Discord.Commands.Core
                             var buttons = new List<DiscordButtonComponent>();
                             foreach (DiscordEmbed f in partner.MessageEmbeds)
                             {
-                                items.Add($"`{c++}` - {f.Title}");
+                                items.Add($"`{c}` - {f.Title}");
                                 buttons.Add(new(ButtonStyle.Primary, c.ToString(), c.ToString()));
+                                c++;
                             }
 
                             var statusEmbed = new DiscordEmbedBuilder()
@@ -487,7 +504,7 @@ namespace PartnerBot.Discord.Commands.Core
                                             .WithTitle("Partner Bot Setup - Main")
                                             .WithDescription($"**Embed removed.**")));
 
-                                partner.MessageEmbeds.RemoveAt(index);
+                                partner.MessageEmbeds.RemoveAt(index - 1);
 
                                 await Task.Delay(TimeSpan.FromSeconds(2));
                             }
