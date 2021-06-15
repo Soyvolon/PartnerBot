@@ -22,6 +22,16 @@ namespace PartnerBot.Discord.Commands.Core
         // Items with three outputs (object, string?, bool) follow: (output, error message, fatal error). Commands should immedietly stop running if a
         // fatal error is returned.
 
+        // TODO: Set channel fix has no buttons
+        // TODO: Set messave needs save and exit buttons
+        // TODO: Set banner needs a save/back buttons and the banner details embed needs
+        // to be delted.
+        // TODO: Tag interactions need to remove buttons when running and respond
+        // so the interaction does not fail
+        // TODO: Tags need to be displayed in the add and inital messages
+        // TODO: Embed field adding needs buttons
+        // TODO: Embed filed and embed selection integer values are one too high
+
         protected DiscordEmbed SetupBase { get; set; } = new DiscordEmbedBuilder()
         {
             Title = "Partner Bot Setup - Main",
@@ -75,7 +85,7 @@ namespace PartnerBot.Discord.Commands.Core
         protected async Task<((DiscordChannel, DiscordWebhook, string)?, string?, bool)> GetNewPartnerChannelAsync(Partner partner,
             ComponentInteractionCreateEventArgs interaction)
         {
-            _ = interaction.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+            
             InteractivityExtension? interact = this.Context.Client.GetInteractivity();
             DiscordColor color = DiscordColor.Purple;
 
@@ -310,7 +320,7 @@ namespace PartnerBot.Discord.Commands.Core
         protected async Task<(string?, string?, bool)> GetNewMessage(Partner p, ComponentInteractionCreateEventArgs interaction,
             int linksReset)
         {
-            _ = interaction.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+            
             InteractivityExtension? interact = this.Context.Client.GetInteractivity();
 
             var statusEmbed = new DiscordEmbedBuilder()
@@ -439,7 +449,7 @@ namespace PartnerBot.Discord.Commands.Core
 
         protected async Task<(Uri?, string?, bool)> GetNewPartnerBanner(ComponentInteractionCreateEventArgs interaction)
         {
-            _ = interaction.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+            
             InteractivityExtension? interact = this.Context.Client.GetInteractivity();
 
             var statusEmbed = new DiscordEmbedBuilder()
@@ -536,7 +546,7 @@ namespace PartnerBot.Discord.Commands.Core
             ComponentInteractionCreateEventArgs interaction,
             string title, DiscordEmbedBuilder? toEdit = null)
         {
-            _ = interaction.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+            
             InteractivityExtension? interact = this.Context.Client.GetInteractivity();
 
             var statusEmbed = new DiscordEmbedBuilder()
@@ -546,37 +556,37 @@ namespace PartnerBot.Discord.Commands.Core
                 " `save` (saves any changes and exits this editor)")
                 .WithColor(DiscordColor.Gold);
 
-            var buttons = new DiscordComponent[]
+            var buttons = new DiscordButtonComponent[][]
             {
-                new DiscordActionRowComponent(new DiscordButtonComponent[]
+                new DiscordButtonComponent[]
                 {
                         new(ButtonStyle.Primary, "edit-desc", "Edit Description"),
                         new(ButtonStyle.Secondary, "edit-title", "Edit Title"),
                         new(ButtonStyle.Primary, "edit-color", "Edit Color"),
                         new(ButtonStyle.Secondary, "edit-image", "Edit Image"),
-                }),
-                new DiscordActionRowComponent(new DiscordButtonComponent[]
+                },
+                new DiscordButtonComponent[]
                 {
                         new(ButtonStyle.Primary, "add-field", "Add Field"),
                         new(ButtonStyle.Secondary, "edit-field", "Edit Field"),
                         new(ButtonStyle.Danger, "remove-field", "Remove Field")
-                }),
-                new DiscordActionRowComponent(new DiscordButtonComponent[]
+                },
+                new DiscordButtonComponent[]
                 {
                         new(ButtonStyle.Primary, "save", "Save Embed"),
                         new(ButtonStyle.Secondary, "exit", "Exit Without Saving"),
-                }),
+                },
             };
 
             var builder = new DiscordMessageBuilder()
-                .WithEmbed(statusEmbed)
-                .AddComponents(buttons);
+                .WithEmbed(statusEmbed);
+            foreach(var set in buttons)
+                builder.AddComponents(set);
 
             var statusMessage = await builder.SendAsync(interaction.Channel);
 
             try
             {
-
                 DiscordEmbedBuilder displayEmbed;
                 if (toEdit is not null)
                     displayEmbed = toEdit;
@@ -595,6 +605,7 @@ namespace PartnerBot.Discord.Commands.Core
                     if (!response.Item2) return (null, null, true);
 
                     var res = response.Item1;
+                    await res.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
 
                     if (res.Id.Equals("exit"))
                     {
@@ -824,7 +835,7 @@ namespace PartnerBot.Discord.Commands.Core
             }
             else
             {
-                _ = interaction.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+                
             }
 
             int fields = displayEmbed.Fields.Count;
@@ -988,7 +999,7 @@ namespace PartnerBot.Discord.Commands.Core
             }
             else
             {
-                _ = interaction.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+                
             }
 
             int fields = displayEmbed.Fields.Count;
@@ -1069,7 +1080,7 @@ namespace PartnerBot.Discord.Commands.Core
 
         protected async Task<(DiscordColor?, string?, bool)> GetCustomEmbedColorAsync(Partner p, ComponentInteractionCreateEventArgs interaction)
         {
-            _ = interaction.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+            
             InteractivityExtension? interact = this.Context.Client.GetInteractivity();
 
             var statusEmbed = new DiscordEmbedBuilder()
@@ -1201,7 +1212,7 @@ namespace PartnerBot.Discord.Commands.Core
         protected async Task<(HashSet<string>?, string?, bool)> UpdateTagsAsync
             (Partner p, ComponentInteractionCreateEventArgs interaction)
         {
-            _ = interaction.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+            
             InteractivityExtension? interact = this.Context.Client.GetInteractivity(); 
 
             var statusEmbed = new DiscordEmbedBuilder()

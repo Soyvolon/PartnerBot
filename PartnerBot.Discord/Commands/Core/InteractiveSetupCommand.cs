@@ -77,10 +77,10 @@ namespace PartnerBot.Discord.Commands.Core
             return builder;
         }
 
-        private async Task<DiscordInteractionResponseBuilder> GetInteractionResponseBuilder(Partner partner, bool isChanged = false, 
+        private async Task<DiscordWebhookBuilder> GetInteractionEdit(Partner partner, bool isChanged = false, 
             DiscordChannel? channel = null, string? errorMessage = null)
         {
-            var builder = new DiscordInteractionResponseBuilder()
+            var builder = new DiscordWebhookBuilder()
                 .AddEmbed(await GetRequiermentsEmbed(partner, channel));
 
             foreach(var item in await GetComponents(partner, isChanged))
@@ -147,6 +147,11 @@ namespace PartnerBot.Discord.Commands.Core
                 four
             };
         }
+
+        // TODO: Disable main menu buttons when a sub menu is opened.
+        // TODO: Embed filed and embed selection integer values are one too high
+        // TODO: Handle submenu exits and return to main edit window instead of leaving the edeitor
+        // completely.
 
         [Command("setup")]
         [Description("Interactive Setup for Partner Bot")]
@@ -230,22 +235,15 @@ namespace PartnerBot.Discord.Commands.Core
                 if (lastButtonEvent is null)
                 {
                     var messageBuilder = await GetMessageBuilder(partner, isChanged, channel);
-                    try
-                    {
-                        if (requirementsMessage is null)
-                            requirementsMessage = await messageBuilder.SendAsync(ctx.Channel);
-                        else await requirementsMessage.ModifyAsync(messageBuilder);
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine(ex);
-                    }
+
+                    if (requirementsMessage is null)
+                        requirementsMessage = await messageBuilder.SendAsync(ctx.Channel);
+                    else await requirementsMessage.ModifyAsync(messageBuilder);
                 }
                 else
                 {
-                    await lastButtonEvent.Interaction.CreateResponseAsync(
-                        InteractionResponseType.UpdateMessage,
-                        await GetInteractionResponseBuilder(partner, isChanged, channel, errorMessage)
+                    await lastButtonEvent.Interaction.EditOriginalResponseAsync(
+                        await GetInteractionEdit(partner, isChanged, channel, errorMessage)
                     );
 
                     requirementsMessage = lastButtonEvent.Message;
@@ -256,6 +254,7 @@ namespace PartnerBot.Discord.Commands.Core
                 if (!response.Item2) return;
 
                 lastButtonEvent = response.Item1;
+                await lastButtonEvent.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
 
                 switch (lastButtonEvent.Id)
                 {
@@ -582,8 +581,10 @@ namespace PartnerBot.Discord.Commands.Core
                         }
                         break;
                     case "get-nsfw":
-                        if(!partner.NSFW)
+                        if (!partner.NSFW)
+                        {
                             partner.ReceiveNSFW = !partner.ReceiveNSFW;
+                        }
                         else
                         {
                             errorMessage = $"**If your server is marked NSFW you must be allwoed to receive other NSFW server advertisments." +
@@ -600,9 +601,9 @@ namespace PartnerBot.Discord.Commands.Core
                         break;
                 }
 
-            } while (!done);
+                isChanged = true;
 
-            await requirementsMessage.DeleteAsync();
+            } while (!done);
 
             (Partner?, string) updateRes = await this._partners.UpdateOrAddPartnerAsync(ctx.Guild.Id, () =>
             {
@@ -619,8 +620,8 @@ namespace PartnerBot.Discord.Commands.Core
 
             if (updateRes.Item1 is not null)
             {
-                await lastButtonEvent.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
-                    new DiscordInteractionResponseBuilder()
+                await lastButtonEvent.Interaction.EditOriginalResponseAsync(
+                    new DiscordWebhookBuilder()
                         .AddEmbed(new DiscordEmbedBuilder()
                             .WithTitle("Partner Bot Setup - Main")
                             .WithColor(DiscordColor.Green)
@@ -628,8 +629,8 @@ namespace PartnerBot.Discord.Commands.Core
             }
             else
             {
-                await lastButtonEvent.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
-                    new DiscordInteractionResponseBuilder()
+                await lastButtonEvent.Interaction.EditOriginalResponseAsync(
+                    new DiscordWebhookBuilder()
                         .AddEmbed(new DiscordEmbedBuilder()
                             .WithTitle("Partner Bot Setup - Main")
                             .WithDescription("An error occurred while saving:\n\n```\n" +
