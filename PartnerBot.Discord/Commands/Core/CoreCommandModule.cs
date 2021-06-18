@@ -789,38 +789,37 @@ namespace PartnerBot.Discord.Commands.Core
                     .AddField(title, desc)
                     .Build());
 
-                await statusMessage.ModifyAsync(statusEmbed
-                    .WithDescription("Should this field be inline? `yes`/`no`")
-                    .WithColor(DiscordColor.Gold)
-                    .Build());
+                statusMessage = await statusMessage.ModifyAsync(
+                    new DiscordMessageBuilder()
+                        .WithEmbed(statusEmbed
+                            .WithDescription("Should this field be inline?")
+                            .WithColor(DiscordColor.Gold))
+                        .AddComponents(new DiscordComponent[]
+                        {
+                            new DiscordButtonComponent(ButtonStyle.Primary, "yes", "Yes"),
+                            new DiscordButtonComponent(ButtonStyle.Secondary, "no", "No")
+                        }));
 
                 bool inline = false;
                 bool valid = false;
                 do
                 {
-                    (InteractivityResult<DiscordMessage>, bool) response = await GetFollowupMessageAsync(interact);
+                    var response = await GetButtonPressAsync(interact, statusMessage);
 
                     if (!response.Item2) return false;
 
-                    InteractivityResult<DiscordMessage> res = response.Item1;
+                    var res = response.Item1;
 
-                    string? msg = res.Result.Content.Trim().ToLower();
+                    await res.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
 
-                    if (msg.Equals("yes") || msg.Equals("y"))
+                    if (res.Id.Equals("yes"))
                     {
                         valid = true;
                         inline = true;
                     }
-                    else if (msg.Equals("no") || msg.Equals("n"))
+                    else if (res.Id.Equals("no"))
                     {
                         valid = true;
-                    }
-                    else
-                    {
-                        await statusMessage.ModifyAsync(statusEmbed
-                            .WithDescription("Should this field be inline? **Please enter either** `yes` or `no`**")
-                            .WithColor(DiscordColor.DarkRed)
-                            .Build());
                     }
                 } while (!valid);
 
