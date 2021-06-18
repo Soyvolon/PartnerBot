@@ -16,6 +16,7 @@ using Microsoft.Extensions.Logging;
 using PartnerBot.Core.Entities.Configuration;
 using PartnerBot.Core.Services;
 using PartnerBot.Discord.Services;
+using PartnerBot.Discord.Utilities;
 
 namespace PartnerBot.Discord
 {
@@ -46,7 +47,7 @@ namespace PartnerBot.Discord
         private Timer PartnerTimer { get; set; }
         private bool StartedVerify { get; set; } = false;
 
-        public const string Version = "V6.1.4";
+        public const string Version = "V6.1.5";
 
         public DiscordBot(PartnerSenderService partnerSender,
             DiscordShardedClient client, DiscordRestClient rest,
@@ -86,6 +87,8 @@ namespace PartnerBot.Discord
 
                 c.CommandErrored += this._error.Client_CommandErrored;
                 c.CommandExecuted += this._error.Client_CommandExecuted;
+
+                c.SetHelpFormatter<CustomHelpFormatter>();
             }
 
             System.Collections.Generic.IReadOnlyDictionary<int, DSharpPlus.Interactivity.InteractivityExtension>? interact = await this._client.UseInteractivityAsync(new());

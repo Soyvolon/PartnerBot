@@ -50,7 +50,7 @@ namespace PartnerBot.Discord.Commands.Utility
                     "Soyvolon")
                 .AddField($"Contributor(s):",
                     $"Neuheit\n\n" +
-                    $"*Want to help out? Check out our [GitHub]()*")
+                    $"*Want to help out? Check out our [GitHub](https://github.com/Soyvolon/PartnerBot)*")
                 .WithFooter($"{ctx.Prefix}info")
                 .WithTimestamp(DateTime.Now);
 

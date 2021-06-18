@@ -23,4 +23,4 @@ Want a detailed list about what types of cool features you can add to your partn
 
 ## Our Discord
 
-Looking for help for specific problem? Hop into our [Discord](https://discord.gg/ReAYqQN) and head on over to `#request-support` to get your questions answered!
+Looking for help for specific problem? Hop into our [Discord](https://discord.gg/3SCTnhCMam) and head on over to `#request-support` to get your questions answered!
