@@ -21,13 +21,7 @@ namespace PartnerBot.Discord.Commands.Core
     {
         // Items with three outputs (object, string?, bool) follow: (output, error message, fatal error). Commands should immedietly stop running if a
         // fatal error is returned.
-
-        // TODO: Set message needs save and exit buttons
-        // TODO: Set banner needs a save/back buttons and the banner details embed needs
-        // to be delted.
-        // TODO: Tag interactions need to remove buttons when running and respond
-        // so the interaction does not fail.
-        // TODO: Tags need to be displayed in the add and inital messages
+        
         // TODO: Embed field adding needs buttons.
 
         protected DiscordEmbed SetupBase { get; set; } = new DiscordEmbedBuilder()
@@ -340,90 +334,123 @@ namespace PartnerBot.Discord.Commands.Core
                 int linkCount = p.LinksUsed;
                 do
                 {
-                    (InteractivityResult<DiscordMessage>, bool) response = await GetFollowupMessageAsync(interact);
+                    List<Task> taskPair = new();
+                    taskPair.Add(GetFollowupMessageAsync(interact));
+                    if(!first)
+                        taskPair.Add(GetButtonPressAsync(interact, statusMessage));
 
-                    if (!response.Item2) return (null, null, true);
+                    var completedPoint = Task.WaitAny(taskPair.ToArray());
 
-                    InteractivityResult<DiscordMessage> res = response.Item1;
+                    string msg = "";
 
-                    string? msg = res.Result.Content;
-
-                    string? trimmed = msg.ToLower().Trim();
-
-                    if (trimmed.Equals("exit"))
+                    if (completedPoint == 0)
                     {
-                        await RespondError("Aborting...");
-                        return (null, null, true);
-                    }
-                    else if (!first
-                        && trimmed.Equals("save"))
-                    {
-                        if (!string.IsNullOrWhiteSpace(message))
+                        var response = await (Task<(InteractivityResult<DiscordMessage>, bool)>)taskPair[0];
+
+                        if (!response.Item2) return (null, null, true);
+
+                        InteractivityResult<DiscordMessage> res = response.Item1;
+
+                        msg = res.Result.Content;
+
+                        string? trimmed = msg.ToLower().Trim();
+
+                        if (trimmed.Equals("exit"))
                         {
-                            if (message.Length > 1900)
-                            {
-                                await statusMessage.ModifyAsync(statusEmbed
-                                    .WithColor(DiscordColor.DarkRed)
-                                    .WithDescription("A message cannot be longer than 1900 characters! Please input a valid message before saving.")
-                                    .Build());
-
-                                continue;
-                            }
-
-                            break;
+                            await RespondError("Aborting...");
+                            return (null, null, true);
                         }
-                        else
+
+                        if (msg.Length > 1900)
                         {
                             await statusMessage.ModifyAsync(statusEmbed
-                                .WithColor(DiscordColor.DarkRed)
-                                .WithDescription("A message cannot be empty! Please input a valid message before saving.")
-                                .Build());
+                                        .WithColor(DiscordColor.DarkRed)
+                                        .WithDescription("A message cannot be longer than 1900 characters!")
+                                        .Build());
 
                             continue;
                         }
-                    }
 
-                    if (msg.Length > 1900)
-                    {
-                        await statusMessage.ModifyAsync(statusEmbed
-                                    .WithColor(DiscordColor.DarkRed)
-                                    .WithDescription("A message cannot be longer than 1900 characters!")
-                                    .Build());
+                        if (pMessage is not null)
+                            await pMessage.DeleteAsync();
 
-                        continue;
-                    }
+                        linkCount = p.LinksUsed;
 
-                    if (pMessage is not null)
-                        await pMessage.DeleteAsync();
+                        IReadOnlyList<string>? links = msg.GetUrls();
 
-                    linkCount = p.LinksUsed;
-
-                    IReadOnlyList<string>? links = msg.GetUrls();
-
-                    foreach (string? l in links)
-                    {
-                        if (linkCount >= p.DonorRank)
+                        foreach (string? l in links)
                         {
-                            msg = msg.Remove(msg.IndexOf(l), l.Length);
-                        }
-                        else
-                        {
-                            if (l.ContainsDiscordUrl())
+                            if (linkCount >= p.DonorRank)
                             {
                                 msg = msg.Remove(msg.IndexOf(l), l.Length);
                             }
                             else
                             {
-                                linkCount++;
+                                if (l.ContainsDiscordUrl())
+                                {
+                                    msg = msg.Remove(msg.IndexOf(l), l.Length);
+                                }
+                                else
+                                {
+                                    linkCount++;
+                                }
                             }
                         }
                     }
+                    else if(!first)
+                    {
+                        var interRes = await (Task<(ComponentInteractionCreateEventArgs, bool)>)taskPair[1];
 
-                    await statusMessage.ModifyAsync(statusEmbed
-                        .WithColor(DiscordColor.Aquamarine)
-                        .WithDescription("This is your message, an invite will be added automatically when it is sent." +
-                        " Is this how you would like your message to look? If yes, type `save`, otherwise enter a new message.")
-                        .Build());
+                        if (!interRes.Item2) return (null, null, true);
+
+                        var res = interRes.Item1;
+
+                        await res.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+
+                        if (!first
+                            && res.Id.Equals("save"))
+                        {
+                            if (!string.IsNullOrWhiteSpace(message))
+                            {
+                                if (message.Length > 1900)
+                                {
+                                    await statusMessage.ModifyAsync(statusEmbed
+                                        .WithColor(DiscordColor.DarkRed)
+                                        .WithDescription("A message cannot be longer than 1900 characters! Please input a valid message before saving.")
+                                        .Build());
+
+                                    continue;
+                                }
+
+                                break;
+                            }
+                            else
+                            {
+                                await statusMessage.ModifyAsync(statusEmbed
+                                    .WithColor(DiscordColor.DarkRed)
+                                    .WithDescription("A message cannot be empty! Please input a valid message before saving.")
+                                    .Build());
+
+                                continue;
+                            }
+                        }
+                        else if (res.Id.Equals("exit"))
+                        {
+                            await RespondError("Aborting...");
+                            return (null, null, true);
+                        }
+                    }
+
+                    if (first)
+                    {
+                        builder.AddComponents(new DiscordComponent[]
+                        {
+                        new DiscordButtonComponent(ButtonStyle.Success, "save", "Save"),
+                        new DiscordButtonComponent(ButtonStyle.Danger, "exit", "Exit Without Saving")
+                        });
+                    }
+
+                    statusMessage = await statusMessage.ModifyAsync(builder);
 
                     pMessage = await this.Context.RespondAsync(msg);
                     message = msg;
@@ -456,86 +483,117 @@ namespace PartnerBot.Discord.Commands.Core
                 " an image extension such as `.png`, `.jpg`, or `.gif`")
                 .WithColor(DiscordColor.HotPink);
 
+            var buttons = new DiscordComponent[]
+            {
+                new DiscordButtonComponent(ButtonStyle.Success, "save", "Save"),
+                new DiscordButtonComponent(ButtonStyle.Danger, "exit", "Exit Withtout Saving")
+            };
+
             var builder = new DiscordMessageBuilder()
-                .WithEmbed(statusEmbed);
+                .WithEmbed(statusEmbed)
+                .AddComponents(buttons);
 
             var statusMessage = await builder.SendAsync(interaction.Channel);
 
             Uri? bannerUrl = null;
             DiscordMessage? displayMsg = null;
-            bool first = true;
-            do
+
+            try
             {
-                (InteractivityResult<DiscordMessage>, bool) response = await GetFollowupMessageAsync(interact);
 
-                if (!response.Item2) return (null, null, true);
-
-                InteractivityResult<DiscordMessage> res = response.Item1;
-
-                string? trimmed = res.Result.Content.ToLower().Trim();
-
-                if (trimmed.Equals("exit"))
+                do
                 {
-                    await RespondError("Aborting...");
-                    return (null, null, true);
-                }
-                else if (!first && trimmed.Equals("save"))
-                {
-                    if(bannerUrl is not null)
-                        break;
+                    List<Task> taskPair = new();
+                    taskPair.Add(GetFollowupMessageAsync(interact));
+                    taskPair.Add(GetButtonPressAsync(interact, statusMessage));
+
+                    var completedPoint = Task.WaitAny(taskPair.ToArray());
+
+                    if (completedPoint == 0)
+                    {
+                        var response = await (Task<(InteractivityResult<DiscordMessage>, bool)>)taskPair[0];
+
+                        if (!response.Item2) return (null, null, true);
+
+                        InteractivityResult<DiscordMessage> res = response.Item1;
+
+                        if (displayMsg is not null)
+                            await displayMsg.DeleteAsync();
+
+                        if (res.Result.Attachments.Count > 0)
+                        {
+                            _ = Uri.TryCreate(res.Result.Attachments[0].Url, UriKind.Absolute, out bannerUrl);
+                        }
+                        else
+                        {
+                            IReadOnlyList<string>? links = res.Result.Content.GetUrls();
+
+                            if (links.Count > 0)
+                                _ = Uri.TryCreate(links[0], UriKind.Absolute, out bannerUrl);
+                        }
+
+                        if (bannerUrl is null)
+                        {
+                            await statusMessage.ModifyAsync(statusEmbed
+                                .WithDescription("No image was uploaded or an invalid link was provided. Please include the full link if you used a link.\n\n" +
+                                "Type `exit` to quit, upload a new image, or input a new link.")
+                                .WithColor(DiscordColor.DarkRed)
+                                .Build());
+                        }
+                        else
+                        {
+                            await statusMessage.ModifyAsync(statusEmbed
+                                .WithDescription("The following image will be used as your banner image. Make sure it shows up properly in the embed, then type `save`." +
+                                " If nothing shows up, make sure your link is correct or try uploading a new image.")
+                                .WithColor(DiscordColor.HotPink)
+                                .Build());
+
+                            displayMsg = await this.Context.RespondAsync(new DiscordEmbedBuilder()
+                                .WithImageUrl(bannerUrl));
+                        }
+                    }
                     else
                     {
-                        await statusMessage.ModifyAsync(statusEmbed
-                               .WithColor(DiscordColor.DarkRed)
-                               .WithDescription("The Banner URL cannot be empty! Please input a valid banner before saving.")
-                               .Build());
+                        var interRes = await (Task<(ComponentInteractionCreateEventArgs, bool)>)taskPair[1];
 
-                        continue;
+                        if (!interRes.Item2) return (null, null, true);
+
+                        var res = interRes.Item1;
+
+                        if (res.Id.Equals("exit"))
+                        {
+                            await RespondError("Aborting...");
+                            await res.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+                            return (null, null, true);
+                        }
+                        else if (res.Id.Equals("save"))
+                        {
+                            if (bannerUrl is not null)
+                                break;
+                            else
+                            {
+                                await res.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
+                                    new DiscordInteractionResponseBuilder()
+                                    .AddEmbed(statusEmbed
+                                        .WithDescription("The banner URL can not be blank! Enter a URL to save.")
+                                        .WithColor(DiscordColor.DarkRed))
+                                    .AddComponents(buttons));
+
+                                continue;
+                            }
+                        }
                     }
-                }
+                } while (true);
 
+                return (bannerUrl, null, false);
+            }
+            finally
+            {
                 if (displayMsg is not null)
                     await displayMsg.DeleteAsync();
-                
-                if(res.Result.Attachments.Count > 0)
-                {
-                    _ = Uri.TryCreate(res.Result.Attachments[0].Url, UriKind.Absolute, out bannerUrl);
-                }
-                else
-                {
-                    IReadOnlyList<string>? links = res.Result.Content.GetUrls();
 
-                    if(links.Count > 0)
-                        _ = Uri.TryCreate(links[0], UriKind.Absolute, out bannerUrl);
-                }
-
-                if(bannerUrl is null)
-                {
-                    await statusMessage.ModifyAsync(statusEmbed
-                        .WithDescription("No image was uploaded or an invalid link was provided. Please include the full link if you used a link.\n\n" +
-                        "Type `exit` to quit, upload a new image, or input a new link.")
-                        .WithColor(DiscordColor.DarkRed)
-                        .Build());
-                }
-                else
-                {
-                    await statusMessage.ModifyAsync(statusEmbed
-                        .WithDescription("The following image will be used as your banner image. Make sure it shows up properly in the embed, then type `save`." +
-                        " If nothing shows up, make sure your link is correct or try uploading a new image.")
-                        .WithColor(DiscordColor.HotPink)
-                        .Build());
-
-                    displayMsg = await this.Context.RespondAsync(new DiscordEmbedBuilder()
-                        .WithImageUrl(bannerUrl));
-                }
-
-                first = false;
-            } while (true);
-
-            if (displayMsg is not null)
-                await displayMsg.DeleteAsync();
-
-            return (bannerUrl, null, false);
+                await statusMessage.DeleteAsync();
+            }
         }
 
         // TODO: Verify embed is not over limits
@@ -1212,13 +1270,15 @@ namespace PartnerBot.Discord.Commands.Core
         protected async Task<(HashSet<string>?, string?, bool)> UpdateTagsAsync
             (Partner p, ComponentInteractionCreateEventArgs interaction)
         {
-            
             InteractivityExtension? interact = this.Context.Client.GetInteractivity(); 
 
             var statusEmbed = new DiscordEmbedBuilder()
                 .WithColor(DiscordColor.Aquamarine)
                 .WithTitle("Partner Bot Setup - Tags")
-                .WithDescription("Welcome to the tag editor! Please select an option:");
+                .WithDescription("Welcome to the tag editor! Current Tags:\n" +
+                $"`{string.Join("`, `", p.Tags)}`" +
+                "\n\n" +
+                "Please select an option:");
 
             var buttons = new DiscordComponent[]
             {
@@ -1236,7 +1296,6 @@ namespace PartnerBot.Discord.Commands.Core
 
             try
             {
-
                 bool save = false;
                 bool errored = false;
                 do
@@ -1250,21 +1309,23 @@ namespace PartnerBot.Discord.Commands.Core
                     switch (res.Id)
                     {
                         case "exit":
+                            await res.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
                             await RespondError("Setup cancled");
                             return (null, null, true);
 
                         case "save":
+                            await res.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
                             save = true;
                             break;
 
                         case "add":
-
-                            await statusMessage.ModifyAsync(statusEmbed
-                                .WithDescription("**Adding Tags**:\n\n" +
-                                "Please enter the tags you would wish to add. Tags are one word, and multiple tags can be separated by spaces.\n\n" +
-                                "**You can have no more than 10 tags.**\n\n" +
-                                $"Current Tags: `{string.Join("`, `", p.Tags)}`")
-                                .Build());
+                            await res.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
+                                new DiscordInteractionResponseBuilder()
+                                    .AddEmbed(statusEmbed
+                                        .WithDescription("**Adding Tags**:\n\n" +
+                                        "Please enter the tags you would wish to add. Tags are one word, and multiple tags can be separated by spaces.\n\n" +
+                                        "**You can have no more than 10 tags.**\n\n" +
+                                        $"Current Tags: `{string.Join("`, `", p.Tags)}`")));
 
                             (InteractivityResult<DiscordMessage>, bool) addFollowup = await GetFollowupMessageAsync(interact);
 
@@ -1280,6 +1341,13 @@ namespace PartnerBot.Discord.Commands.Core
                                     .WithDescription("The amount of tags added place your tags over the limit of 10 tags. Please try adding less tags.")
                                     .Build());
 
+                                await res.Interaction.EditOriginalResponseAsync(
+                                    new DiscordWebhookBuilder()
+                                        .AddEmbed(statusEmbed
+                                            .WithDescription("The amount of tags added place your tags over the limit of 10 tags. Please try adding less tags.\n\n" +
+                                            $"Current Tags: `{string.Join("`, `", p.Tags)}`"))
+                                        .AddComponents(buttons));
+
                                 errored = true;
                             }
                             else
@@ -1292,11 +1360,12 @@ namespace PartnerBot.Discord.Commands.Core
                         case "remove":
                         case "del":
 
-                            await statusMessage.ModifyAsync(statusEmbed
-                                .WithDescription("**Removing Tags**:\n\n" +
-                                "Please enter the tags you would wish to remove. Tags are one word, and multiple tags can be separated by spaces.\n\n" +
-                                $"Current Tags: `{string.Join("`, `", p.Tags)}`")
-                                .Build());
+                            await res.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage,
+                                new DiscordInteractionResponseBuilder()
+                                    .AddEmbed(statusEmbed
+                                        .WithDescription("**Removing Tags**:\n\n" +
+                                        "Please enter the tags you would wish to remove. Tags are one word, and multiple tags can be separated by spaces.\n\n" +
+                                        $"Current Tags: `{string.Join("`, `", p.Tags)}`")));
 
                             (InteractivityResult<DiscordMessage>, bool) delFollowup = await GetFollowupMessageAsync(interact);
 
@@ -1304,19 +1373,26 @@ namespace PartnerBot.Discord.Commands.Core
 
                             InteractivityResult<DiscordMessage> delRes = delFollowup.Item1;
 
-                            string[]? delTags = delRes.Result.Content.Trim().ToLower().Split(" ", StringSplitOptions.RemoveEmptyEntries);
+                            HashSet<string> delTags = delRes.Result.Content.Trim().ToLower().Split(" ", StringSplitOptions.RemoveEmptyEntries).ToHashSet();
 
-                            p.Tags.UnionWith(delTags);
+                            delTags.IntersectWith(p.Tags);
+                            p.Tags.SymmetricExceptWith(delTags);
 
                             break;
                     }
 
                     if (!errored)
                     {
-                        await statusMessage.ModifyAsync(statusEmbed
-                            .WithDescription("Welcome to the tag editor! Please select if you would like to `add` or `remove` tags, or `save` your current tag list:\n\n" +
-                            "Options: `add`, `remove`, `save`, `exit`")
-                            .Build());
+                        await res.Interaction.EditOriginalResponseAsync(
+                            new DiscordWebhookBuilder()
+                                .AddEmbed(statusEmbed
+                                    .WithColor(DiscordColor.Aquamarine)
+                                    .WithTitle("Partner Bot Setup - Tags")
+                                    .WithDescription("Welcome to the tag editor! Current Tags:\n" +
+                                    $"`{string.Join("`, `", p.Tags)}`" +
+                                    "\n\n" +
+                                    "Please select an option:"))
+                                .AddComponents(buttons));
                     }
 
                     errored = false;
