@@ -405,7 +405,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                         var res = interRes.Item1;
 
-                        await res.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+                        await res.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
 
                         if (!first
                             && res.Id.Equals("save"))
@@ -563,7 +563,7 @@ namespace PartnerBot.Discord.Commands.Core
                         if (res.Id.Equals("exit"))
                         {
                             await RespondError("Aborting...");
-                            await res.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+                            await res.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
                             return (null, null, true);
                         }
                         else if (res.Id.Equals("save"))
@@ -612,31 +612,9 @@ namespace PartnerBot.Discord.Commands.Core
                 " `save` (saves any changes and exits this editor)")
                 .WithColor(DiscordColor.Gold);
 
-            var buttons = new DiscordButtonComponent[][]
-            {
-                new DiscordButtonComponent[]
-                {
-                        new(ButtonStyle.Primary, "edit-desc", "Edit Description"),
-                        new(ButtonStyle.Secondary, "edit-title", "Edit Title"),
-                        new(ButtonStyle.Primary, "edit-color", "Edit Color"),
-                        new(ButtonStyle.Secondary, "edit-image", "Edit Image"),
-                },
-                new DiscordButtonComponent[]
-                {
-                        new(ButtonStyle.Primary, "add-field", "Add Field"),
-                        new(ButtonStyle.Secondary, "edit-field", "Edit Field"),
-                        new(ButtonStyle.Danger, "remove-field", "Remove Field")
-                },
-                new DiscordButtonComponent[]
-                {
-                        new(ButtonStyle.Primary, "save", "Save Embed"),
-                        new(ButtonStyle.Secondary, "exit", "Exit Without Saving"),
-                },
-            };
-
             var builder = new DiscordMessageBuilder()
                 .WithEmbed(statusEmbed);
-            foreach(var set in buttons)
+            foreach(var set in GetEmbedButtonMenu())
                 builder.AddComponents(set);
 
             var statusMessage = await builder.SendAsync(interaction.Channel);
@@ -651,9 +629,18 @@ namespace PartnerBot.Discord.Commands.Core
                         .WithTitle(title);
 
                 DiscordMessage? displayMessage = await this.Context.RespondAsync(displayEmbed);
-
+                DiscordInteraction? innerInteraction = null;
                 do
                 {
+                    if(innerInteraction is not null)
+                    {
+                        var hookBuilder = new DiscordWebhookBuilder()
+                            .AddEmbed(displayEmbed);
+                        foreach (var set in GetEmbedButtonMenu())
+                            hookBuilder.AddComponents(set);
+                        await innerInteraction.EditOriginalResponseAsync(hookBuilder);
+                    }
+
                     bool invalidSelection = false;
 
                     var response = await GetButtonPressAsync(interact, statusMessage);
@@ -661,7 +648,13 @@ namespace PartnerBot.Discord.Commands.Core
                     if (!response.Item2) return (null, null, true);
 
                     var res = response.Item1;
-                    await res.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+                    var btnUpdate = new DiscordInteractionResponseBuilder()
+                        .AddEmbed(displayEmbed);
+                    foreach (var set in GetEmbedButtonMenu(true))
+                        btnUpdate.AddComponents(set);
+                    await res.Interaction.CreateResponseAsync(InteractionResponseType.UpdateMessage, btnUpdate);
+
+                    innerInteraction = res.Interaction;
 
                     if (res.Id.Equals("exit"))
                     {
@@ -751,6 +744,33 @@ namespace PartnerBot.Discord.Commands.Core
             }
         }
 
+        private DiscordButtonComponent[][] GetEmbedButtonMenu(bool disabled = false)
+        {
+            var buttons = new DiscordButtonComponent[][]
+            {
+                new DiscordButtonComponent[]
+                {
+                        new(ButtonStyle.Primary, "edit-desc", "Edit Description", disabled),
+                        new(ButtonStyle.Secondary, "edit-title", "Edit Title", disabled),
+                        new(ButtonStyle.Primary, "edit-color", "Edit Color", disabled),
+                        new(ButtonStyle.Secondary, "edit-image", "Edit Image", disabled),
+                },
+                new DiscordButtonComponent[]
+                {
+                        new(ButtonStyle.Primary, "add-field", "Add Field", disabled),
+                        new(ButtonStyle.Secondary, "edit-field", "Edit Field", disabled),
+                        new(ButtonStyle.Danger, "remove-field", "Remove Field", disabled)
+                },
+                new DiscordButtonComponent[]
+                {
+                        new(ButtonStyle.Primary, "save", "Save Embed", disabled),
+                        new(ButtonStyle.Secondary, "exit", "Exit Without Saving", disabled),
+                },
+            };
+
+            return buttons;
+        }
+
         private async Task<bool> AddCustomEmbedField(Partner p, InteractivityExtension interact,
             ComponentInteractionCreateEventArgs interaction,
             DiscordMessage displayMessage, DiscordEmbedBuilder displayEmbed)
@@ -810,7 +830,7 @@ namespace PartnerBot.Discord.Commands.Core
 
                     var res = response.Item1;
 
-                    await res.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+                    await res.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
 
                     if (res.Id.Equals("yes"))
                     {
@@ -929,7 +949,7 @@ namespace PartnerBot.Discord.Commands.Core
                     if (!response.Item2) return false;
 
                     res = response.Item1;
-                    _ = res.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+                    _ = res.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
 
                     if (res.Id.Equals("exit"))
                     {
@@ -1308,12 +1328,12 @@ namespace PartnerBot.Discord.Commands.Core
                     switch (res.Id)
                     {
                         case "exit":
-                            await res.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+                            await res.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
                             await RespondError("Setup cancled");
                             return (null, null, true);
 
                         case "save":
-                            await res.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+                            await res.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
                             save = true;
                             break;
 
