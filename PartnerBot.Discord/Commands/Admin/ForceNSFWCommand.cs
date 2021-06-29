@@ -31,7 +31,8 @@ namespace PartnerBot.Discord.Commands.Admin
         {
             var res = await _manager.UpdateOrAddPartnerAsync(guildId, () => new()
             {
-                NSFW = true
+                NSFW = true,
+                ReceiveNSFW = true
             });
 
             if (res.Item1 is null)
