@@ -417,7 +417,7 @@ namespace PartnerBot.Discord.Commands.Core
                             if (!addStart.Item2) return;
 
                             var startRes = addStart.Item1;
-                            await startRes.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+                            await startRes.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
 
                             if (!int.TryParse(startRes.Id, out int index))
                             {
@@ -489,12 +489,12 @@ namespace PartnerBot.Discord.Commands.Core
                             if (!int.TryParse(startRes.Id, out int index))
                             {
                                 errorMessage = $"**The value provided was not a number! Returning to main menu.**";
-                                await startRes.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+                                await startRes.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
                             }
                             else if (index > partner.MessageEmbeds.Count || index < 0)
                             {
                                 errorMessage = $"**The value provided was not a valid embed! Returning to main menu.**";
-                                await startRes.Interaction.CreateResponseAsync(InteractionResponseType.DefferedMessageUpdate);
+                                await startRes.Interaction.CreateResponseAsync(InteractionResponseType.DeferredMessageUpdate);
                             }
                             else
                             {
