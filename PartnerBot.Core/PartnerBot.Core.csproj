@@ -6,10 +6,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="DSharpPlus" Version="4.0.0" />
-    <PackageReference Include="DSharpPlus.CommandsNext" Version="4.0.0" />
-    <PackageReference Include="DSharpPlus.Interactivity" Version="4.0.0" />
-    <PackageReference Include="DSharpPlus.Rest" Version="4.0.0" />
+    <PackageReference Include="DSharpPlus" Version="4.1.0-nightly-00930" />
+    <PackageReference Include="DSharpPlus.CommandsNext" Version="4.1.0-nightly-00930" />
+    <PackageReference Include="DSharpPlus.Interactivity" Version="4.1.0-nightly-00930" />
+    <PackageReference Include="DSharpPlus.Rest" Version="4.1.0-nightly-00930" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="5.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="5.0.5">
       <PrivateAssets>all</PrivateAssets>
