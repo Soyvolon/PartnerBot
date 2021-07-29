@@ -47,7 +47,7 @@ namespace PartnerBot.Discord
         private Timer PartnerTimer { get; set; }
         private bool StartedVerify { get; set; } = false;
 
-        public const string Version = "V6.2.1";
+        public const string Version = "V6.3.0";
 
         public DiscordBot(PartnerSenderService partnerSender,
             DiscordShardedClient client, DiscordRestClient rest,
