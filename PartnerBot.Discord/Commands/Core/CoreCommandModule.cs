@@ -40,7 +40,7 @@ namespace PartnerBot.Discord.Commands.Core
 
         protected async Task<(ComponentInteractionCreateEventArgs, bool)> GetButtonPressAsync(InteractivityExtension interact, DiscordMessage baseMessage)
         {
-            var res = await interact.WaitForButtonAsync(baseMessage);
+            var res = await interact.WaitForButtonAsync(baseMessage, token: null);
 
             if(res.TimedOut)
             {
