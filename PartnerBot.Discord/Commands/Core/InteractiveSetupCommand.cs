@@ -182,7 +182,8 @@ namespace PartnerBot.Discord.Commands.Core
             // once setup is closed, save new data.
 
             GuildBan? ban;
-            if((ban = await this._ban.GetBanAsync(ctx.Guild.Id)) is not null)
+            if((ban = await this._ban.GetBanAsync(ctx.Guild.Id)) is not null
+                || (ban = await this._ban.GetBanAsync(ctx.Guild.OwnerId)) is not null)
             {
                 await RespondError($"Your server is banned due to: {ban.Reason}\n\n" +
                     $"Contact a staff member on the [support server](https://discord.gg/3SCTnhCMam) to learn more.");

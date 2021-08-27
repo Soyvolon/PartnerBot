@@ -19,7 +19,7 @@ namespace PartnerBot.Discord.Commands.Admin
 
         [Command("ban")]
         [Description("Ban a guild from the bot.")]
-        [RequireCessumAdmin]
+        [RequireCessumStaff]
         public async Task GuildBanCommandAsync(CommandContext ctx, 
             [Description("Guild ID to ban.")]
             ulong guildId, 
