@@ -40,7 +40,7 @@ namespace PartnerBot.Discord.Commands.Core
 
         protected async Task<(ComponentInteractionCreateEventArgs, bool)> GetButtonPressAsync(InteractivityExtension interact, DiscordMessage baseMessage)
         {
-            var res = await interact.WaitForButtonAsync(baseMessage, token: null);
+            var res = await interact.WaitForButtonAsync(baseMessage);
 
             if(res.TimedOut)
             {
@@ -248,7 +248,7 @@ namespace PartnerBot.Discord.Commands.Core
             }
         }
 
-        protected async Task<(List<string>, List<DiscordOverwrite>)> GetInvalidChannelSetupDataString(DiscordChannel channel)
+        public static async Task<(List<string>, List<DiscordOverwrite>)> GetInvalidChannelSetupDataString(DiscordChannel channel)
         {
             List<string> data = new();
             List<DiscordOverwrite> invalid = new();

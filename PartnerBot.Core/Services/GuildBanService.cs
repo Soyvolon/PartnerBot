@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 using DSharpPlus;
@@ -85,7 +86,8 @@ namespace PartnerBot.Core.Services
         {
             foreach(DiscordClient? shard in this._client.ShardClients.Values)
             {
-                if(shard.Guilds.TryGetValue(guildId, out DiscordGuild? guild))
+                if(shard.Guilds.TryGetValue(guildId, out DiscordGuild? guild)
+                    || (guild = shard.Guilds.Values.FirstOrDefault(x => x.OwnerId == guildId)) is not null)
                 {
                     ulong hookid = await this._partners.GetPartnerElementAsync(guildId, x => x.WebhookId);
 

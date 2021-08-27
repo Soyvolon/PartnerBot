@@ -10,12 +10,16 @@ using DSharpPlus.CommandsNext;
 using DSharpPlus.Entities;
 using DSharpPlus.EventArgs;
 using DSharpPlus.Interactivity.Extensions;
+using DSharpPlus.SlashCommands;
 
 using Microsoft.Extensions.Logging;
 
 using PartnerBot.Core.Entities.Configuration;
 using PartnerBot.Core.Services;
 using PartnerBot.Discord.Services;
+using PartnerBot.Discord.Slash;
+using PartnerBot.Discord.Slash.Admin;
+using PartnerBot.Discord.Slash.Core;
 using PartnerBot.Discord.Utilities;
 
 namespace PartnerBot.Discord
@@ -89,6 +93,36 @@ namespace PartnerBot.Discord
                 c.CommandExecuted += this._error.Client_CommandExecuted;
 
                 c.SetHelpFormatter<CustomHelpFormatter>();
+
+                var slash = c.Client.UseSlashCommands(new()
+                {
+                    Services = this._serviceProvider
+                });
+
+#if DEBUG
+                slash.RegisterCommands<BanCommand>(431462786900688896);
+                slash.RegisterCommands<SetupInteractions>(431462786900688896);
+#else
+                slash.RegisterCommands<BanCommand>();
+                slash.RegisterCommands<SetupInteractions>();
+#endif
+                slash.SlashCommandErrored += (x, y) =>
+                {
+                    Task.Run(async () =>
+                    {
+                        if (y.Exception is SlashExecutionChecksFailedException ex)
+                        {
+                            await y.Context.CreateResponseAsync(InteractionResponseType.ChannelMessageWithSource,
+                                new DiscordInteractionResponseBuilder()
+                                    .WithContent("You do not have permission to run that command."));
+                        }
+                        else
+                        {
+                            x.Client.Logger.LogError(y.Exception, $"Slash Command Errored.");
+                        }
+                    });
+                    return Task.CompletedTask;
+                };
             }
 
             System.Collections.Generic.IReadOnlyDictionary<int, DSharpPlus.Interactivity.InteractivityExtension>? interact = await this._client.UseInteractivityAsync(new());
@@ -130,7 +164,7 @@ namespace PartnerBot.Discord
             };
         }
 
-        #region Shard Loading
+#region Shard Loading
         private List<List<DiscordClient>> Buckets { get; set; }
         private const int DOWNLOAD_CONCURRENCY = 4;
 
@@ -259,9 +293,9 @@ namespace PartnerBot.Discord
             cnext.CommandErrored += this._error.Client_CommandErrored;
             cnext.CommandExecuted += this._error.Client_CommandExecuted;
         }
-        #endregion
+#endregion
 
-        #region Partner Running
+#region Partner Running
         private int lastHour = -1;
         private bool firstRun = false;
         private bool secondRun = false;
@@ -316,6 +350,6 @@ namespace PartnerBot.Discord
             }
         }
 
-        #endregion
+#endregion
     }
 }
