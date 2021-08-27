@@ -2,6 +2,8 @@
 using DSharpPlus.SlashCommands;
 
 using PartnerBot.Discord.Commands;
+using PartnerBot.Discord.Commands.Conditions;
+using PartnerBot.Discord.Slash.Conditions;
 
 using System;
 using System.Collections.Generic;
@@ -15,10 +17,13 @@ namespace PartnerBot.Discord.Slash
     {
         protected BaseContext Ctx { get; set; }
 
-        public override Task<bool> BeforeContextMenuExecutionAsync(ContextMenuContext ctx)
+        public override async Task<bool> BeforeContextMenuExecutionAsync(ContextMenuContext ctx)
         {
             Ctx = ctx;
-            return base.BeforeContextMenuExecutionAsync(ctx);
+            // for now
+            var res = await new RequireServerAdminOrOwnerSlashAttribute().ExecuteChecksAsync(ctx);
+            if (!res) throw new Exception("Checks failed");
+            return await base.BeforeContextMenuExecutionAsync(ctx);
         }
 
         public override Task<bool> BeforeSlashExecutionAsync(InteractionContext ctx)

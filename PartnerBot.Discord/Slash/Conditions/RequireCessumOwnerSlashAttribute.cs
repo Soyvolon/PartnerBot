@@ -23,11 +23,16 @@ namespace PartnerBot.Discord.Slash.Conditions
             this._pcfg = DiscordBot.PbCfg ?? new("", "pb!", new(), new(), 0, new(), Permissions.None, "", 1);
         }
 
-        public override Task<bool> ExecuteChecksAsync(InteractionContext ctx)
+        public virtual Task<bool> ExecuteChecksAsync(BaseContext ctx)
         {
             if (isOwner(ctx.Member.Id)) return Task.FromResult(true);
 
             return Task.FromResult(false);
+        }
+
+        public override async Task<bool> ExecuteChecksAsync(InteractionContext ctx)
+        {
+            return await ExecuteChecksAsync(ctx);
         }
 
         // Determines if an ID is an owner.

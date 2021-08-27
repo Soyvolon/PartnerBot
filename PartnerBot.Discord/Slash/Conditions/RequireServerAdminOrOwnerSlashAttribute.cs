@@ -14,7 +14,7 @@ namespace PartnerBot.Discord.Slash.Conditions
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
     public class RequireServerAdminOrOwnerSlashAttribute : RequireCessumOwnerSlashAttribute
     {
-        public override Task<bool> ExecuteChecksAsync(InteractionContext ctx)
+        public override Task<bool> ExecuteChecksAsync(BaseContext ctx)
         {
             if (isOwner(ctx.Member.Id)) return Task.FromResult(true);
 

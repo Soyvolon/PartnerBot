@@ -15,7 +15,7 @@ namespace PartnerBot.Discord.Slash.Conditions
     [AttributeUsage(AttributeTargets.Method)]
     public class RequireCessumAdminSlashAttribute : RequireCessumOwnerSlashAttribute
     {
-        public override async Task<bool> ExecuteChecksAsync(InteractionContext ctx)
+        public override async Task<bool> ExecuteChecksAsync(BaseContext ctx)
         {
             if (isOwner(ctx.Member.Id)) return true;
 
@@ -26,7 +26,7 @@ namespace PartnerBot.Discord.Slash.Conditions
             return false;
         }
 
-        public async Task<(bool, DiscordMember?)> IsCessumAdmin(InteractionContext ctx)
+        public async Task<(bool, DiscordMember?)> IsCessumAdmin(BaseContext ctx)
         {
             if (DiscordBot.Client is null) return (false, null);
 
